@@ -19,7 +19,7 @@ from django.conf.urls.static import static
 from django.urls import path
 from hairbnb import views
 from hairbnb.views import create_user_profile, home, check_user_profile, ServicesListView, add_or_update_service, \
-    coiffeuse_services, list_coiffeuses
+    coiffeuse_services, list_coiffeuses, get_user_profile, UpdateUserProfileView
 from django.conf import settings
 
 urlpatterns = [
@@ -34,6 +34,8 @@ urlpatterns = [
     path('api/add_or_update_service/', views.add_or_update_service, name='add_or_update_service_without_id'),
     path('api/coiffeuse_services/<int:coiffeuse_id>/', coiffeuse_services, name='coiffeuse_services'),
     path('api/list_coiffeuses/', list_coiffeuses, name='list_coiffeuses'),
+    path('api/get_user_profile/<str:userUuid>/', views.get_user_profile, name='get_user_profile'),
+    path('api/update_user_profile/<str:uuid>/', UpdateUserProfileView.as_view(), name='update_user_profile'),
 ]#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Ajoutez les URL pour servir les fichiers médias en mode développement

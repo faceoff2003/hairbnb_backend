@@ -1,7 +1,11 @@
 import logging
 from datetime import datetime
 
+from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, TblUser, TblServiceTemps, TblServicePrix, \
@@ -9,6 +13,7 @@ from .models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, Tb
 from .services.geolocation_service import GeolocationService
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 
 
 def home(request):
@@ -119,6 +124,364 @@ def create_user_profile(request):
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
 
 #*************************************************************************************************************
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from hairbnb.models import TblUser, TblCoiffeuse, TblClient
+
+#////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@csrf_exempt
+def get_user_profile(request, userUuid):
+    try:
+        # Récupérer l'utilisateur
+        user = get_object_or_404(TblUser, uuid=userUuid)
+
+        # Construire la réponse
+        user_data = {
+            "uuid": user.uuid,
+            "nom": user.nom,
+            "prenom": user.prenom,
+            "email": user.email,
+            "type": user.type,
+            "sexe": user.sexe,
+            "numero_telephone": user.numero_telephone,
+            "photo_profil": user.photo_profil.url if user.photo_profil else None,
+        }
+
+        # Ajouter l'adresse si elle existe
+        if user.adresse:
+            user_data.update({
+                "adresse": f"{user.adresse.numero}, {user.adresse.rue.nom_rue}",
+                "code_postal": user.adresse.rue.localite.code_postal,
+                "commune": user.adresse.rue.localite.commune,
+            })
+
+        # Ajouter les informations professionnelles si c'est une coiffeuse
+        if user.type == "coiffeuse" and hasattr(user, 'coiffeuse'):
+            user_data.update({
+                "denomination_sociale": user.coiffeuse.denomination_sociale,
+                "tva": user.coiffeuse.tva,
+                "position": user.coiffeuse.position,
+            })
+
+        return JsonResponse({"success": True, "data": user_data})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    #////////////////////////////////////////////////////////////////////////////////////////////////
+# def get_user_profile(request, userUuid):
+#     try:
+#         # Récupérer l'utilisateur avec son UUID
+#         user = get_object_or_404(TblUser, uuid=userUuid)
+#
+#         # Construire la réponse de base
+#         user_data = {
+#             "uuid": user.uuid,
+#             "nom": user.nom,
+#             "prenom": user.prenom,
+#             "email": user.email,
+#             "type": user.type,
+#             "sexe": user.sexe,
+#             "numero_telephone": user.numero_telephone,
+#             "photo_profil": user.photo_profil.url if user.photo_profil else None,
+#         }
+#
+#         # Ajouter des informations spécifiques pour une coiffeuse
+#         if user.type == 'coiffeuse':
+#             coiffeuse = user.coiffeuse
+#             user_data.update({
+#                 "denomination_sociale": coiffeuse.denomination_sociale,
+#                 "tva": coiffeuse.tva,
+#                 "position": coiffeuse.position,
+#             })
+#
+#         # Ajouter des informations spécifiques pour un client (si nécessaire)
+#         if user.type == 'client':
+#             user_data.update({
+#                 "client_info": "Informations spécifiques aux clients ici",
+#             })
+#
+#         return JsonResponse({"success": True, "data": user_data})
+#
+#     except TblUser.DoesNotExist:
+#         return JsonResponse({"success": False, "error": "Utilisateur introuvable"}, status=404)
+
+
+# @csrf_exempt
+# def get_user_profile(request, userUuid):
+#     try:
+#         # Recherche de l'utilisateur par UUID
+#         user = TblUser.objects.get(uuid=userUuid)
+#
+#         # Construction du message de réponse
+#         message = f"Bonjour Monsieur {user.nom} {user.prenom}, votre UUID est : {userUuid}"
+#         return JsonResponse({"success": True, "message": message})
+#     except TblUser.DoesNotExist:
+#         return JsonResponse({"success": False, "error": "Aucun utilisateur trouvé pour cet UUID."}, status=404)
+
+
+# def get_user_profile(request, user_uuid):
+#     try:
+#         # Chercher l'utilisateur via l'UUID
+#         user = get_object_or_404(TblUser, uuid=user_uuid)
+#
+#         # Vérifier le type d'utilisateur et récupérer les détails spécifiques
+#         if user.type == 'coiffeuse':
+#             coiffeuse = TblCoiffeuse.objects.select_related('idTblUser').get(idTblUser=user)
+#             response_data = {
+#                 "uuid": user.uuid,
+#                 "nom": user.nom,
+#                 "prenom": user.prenom,
+#                 "denomination_sociale": coiffeuse.denomination_sociale,
+#                 "position": coiffeuse.position,
+#             }
+#         elif user.type == 'client':
+#             client = TblClient.objects.select_related('idTblUser').get(idTblUser=user)
+#             response_data = {
+#                 "uuid": user.uuid,
+#                 "nom": user.nom,
+#                 "prenom": user.prenom,
+#             }
+#         else:
+#             return JsonResponse({"error": "Type d'utilisateur inconnu"}, status=400)
+#
+#         return JsonResponse({"success": True, "data": response_data}, status=200)
+#
+#     except TblUser.DoesNotExist:
+#         return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+#     except TblCoiffeuse.DoesNotExist:
+#         return JsonResponse({"error": "Informations de coiffeuse introuvables"}, status=404)
+#     except TblClient.DoesNotExist:
+#         return JsonResponse({"error": "Informations de client introuvables"}, status=404)
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
+# def get_user_profile(request, user_uuid):
+#     try:
+#         # Recherche dans TblUser avec l'UUID
+#         user = get_object_or_404(TblUser, uuid=user_uuid)
+#
+#         # Déterminer le type d'utilisateur
+#         if user.type == 'coiffeuse':
+#             # Rechercher les données supplémentaires pour une coiffeuse
+#             coiffeuse = TblCoiffeuse.objects.select_related('idTblUser').get(idTblUser=user)
+#             response_data = {
+#                 "uuid": user.uuid,
+#                 "nom": user.nom,
+#                 "prenom": user.prenom,
+#                 "email": user.email,
+#                 "numero_telephone": user.numero_telephone,
+#                 "type": user.type,
+#                 "denomination_sociale": coiffeuse.denomination_sociale,
+#                 "tva": coiffeuse.tva,
+#                 "position": coiffeuse.position,
+#                 "adresse": str(user.adresse) if user.adresse else None,
+#                 "photo_profil": user.photo_profil.url if user.photo_profil else None,
+#             }
+#         elif user.type == 'client':
+#             # Rechercher les données supplémentaires pour un client
+#             client = TblClient.objects.select_related('idTblUser').get(idTblUser=user)
+#             response_data = {
+#                 "uuid": user.uuid,
+#                 "nom": user.nom,
+#                 "prenom": user.prenom,
+#                 "email": user.email,
+#                 "numero_telephone": user.numero_telephone,
+#                 "type": user.type,
+#                 "adresse": str(user.adresse) if user.adresse else None,
+#                 "photo_profil": user.photo_profil.url if user.photo_profil else None,
+#             }
+#         else:
+#             return JsonResponse({"error": "Type d'utilisateur inconnu"}, status=400)
+#
+#         return JsonResponse({"success": True, "data": response_data}, status=200)
+#
+#     except TblCoiffeuse.DoesNotExist:
+#         return JsonResponse({"error": "Informations de coiffeuse introuvables"}, status=404)
+#     except TblClient.DoesNotExist:
+#         return JsonResponse({"error": "Informations de client introuvables"}, status=404)
+#     except TblUser.DoesNotExist:
+#         return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+#*************************************************************************************************************
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+logger = logging.getLogger(__name__)
+@method_decorator(csrf_exempt, name='dispatch')
+class UpdateUserProfileView(View):
+    def patch(self, request, uuid):
+        try:
+            logger.info(f"Requête PATCH reçue pour l'utilisateur {uuid}")
+
+            # Charger les données de la requête
+            data = json.loads(request.body)
+
+            logger.info(f"Données reçues : {data}")
+
+            # Récupérer l'utilisateur par UUID
+            user = TblUser.objects.get(uuid=uuid)
+
+            # Logs avant la mise à jour
+            logger.info(f"Avant mise à jour : {user.nom}, {user.prenom}")
+
+            # Mise à jour des champs généraux
+            user.nom = data.get('nom', user.nom)
+            user.prenom = data.get('prenom', user.prenom)
+            user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
+
+            if 'email' in data:
+                try:
+                    validate_email(data['email'])
+                    user.email = data['email']
+                except ValidationError:
+                    return JsonResponse({"success": False, "message": "Email non valide."}, status=400)
+
+            # Mise à jour de l'adresse
+            if 'adresse' in data:
+                adresse_data = data['adresse']
+                if isinstance(adresse_data, dict):
+                    # Utiliser l'adresse existante ou créer une nouvelle
+                    adresse = user.adresse or TblAdresse()
+
+                    # Mise à jour des champs de l'adresse
+                    adresse.numero = adresse_data.get('numero', adresse.numero)
+                    adresse.boite_postale = adresse_data.get('boite_postale', adresse.boite_postale)
+
+                    # Vérifier et mettre à jour la rue associée
+                    if 'rue_id' in adresse_data:
+                        try:
+                            rue = TblRue.objects.get(idTblRue=adresse_data['rue_id'])
+                            adresse.rue = rue
+                        except TblRue.DoesNotExist:
+                            return JsonResponse(
+                                {"success": False, "message": f"Rue avec ID {adresse_data['rue_id']} introuvable."},
+                                status=400
+                            )
+
+                    adresse.save()
+                    user.adresse = adresse
+
+            # Mise à jour des champs spécifiques pour les coiffeuses
+            if user.type == 'coiffeuse' and hasattr(user, 'coiffeuse'):
+                coiffeuse = user.coiffeuse
+                coiffeuse.denomination_sociale = data.get('denomination_sociale', coiffeuse.denomination_sociale)
+                coiffeuse.tva = data.get('tva', coiffeuse.tva)
+                coiffeuse.position = data.get('position', coiffeuse.position)
+                coiffeuse.save()
+
+            # Sauvegarder les modifications de l'utilisateur
+            user.save()
+            # Logs après la mise à jour
+            logger.info(f"Après mise à jour : {user.nom}, {user.prenom}")
+
+            return JsonResponse({"success": True, "message": "Profil mis à jour avec succès."})
+
+        except TblUser.DoesNotExist:
+            logger.error(f"Utilisateur avec UUID {uuid} introuvable.")
+            return JsonResponse({"success": False, "message": "Utilisateur introuvable."}, status=404)
+        except Exception as e:
+            logger.error(f"Erreur : {str(e)}")
+            return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class UpdateUserProfileView(View):
+#     def patch(self, request, uuid):
+#         try:
+#             # Charger les données de la requête
+#             data = json.loads(request.body)
+#
+#             # Récupérer l'utilisateur par UUID
+#             user = TblUser.objects.get(uuid=uuid)
+#
+#             # Mise à jour des champs généraux
+#             user.nom = data.get('nom', user.nom)
+#             user.prenom = data.get('prenom', user.prenom)
+#             user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
+#
+#             if 'email' in data:
+#                 try:
+#                     validate_email(data['email'])
+#                     user.email = data['email']
+#                 except ValidationError:
+#                     return JsonResponse({"success": False, "message": "Email non valide."}, status=400)
+#
+#             if 'adresse' in data:
+#                 # Mise à jour ou création de l'adresse associée
+#                 adresse_data = data['adresse']
+#                 if isinstance(adresse_data, dict):
+#                     adresse = user.adresse or TblAdresse()
+#                     adresse.numero = adresse_data.get('numero', adresse.numero)
+#                     adresse.boite_postale = adresse_data.get('boite_postale', adresse.boite_postale)
+#                     if 'rue_id' in adresse_data:
+#                         adresse.rue_id = adresse_data['rue_id']
+#                     adresse.save()
+#                     user.adresse = adresse
+#
+#             # Mise à jour des champs spécifiques pour les coiffeuses
+#             if user.type == 'coiffeuse' and hasattr(user, 'coiffeuse'):
+#                 coiffeuse = user.coiffeuse
+#                 coiffeuse.denomination_sociale = data.get('denomination_sociale', coiffeuse.denomination_sociale)
+#                 coiffeuse.tva = data.get('tva', coiffeuse.tva)
+#                 coiffeuse.position = data.get('position', coiffeuse.position)
+#                 coiffeuse.save()
+#
+#             # Sauvegarder les modifications de l'utilisateur
+#             user.save()
+#
+#             return JsonResponse({"success": True, "message": "Profil mis à jour avec succès."})
+#
+#         except TblUser.DoesNotExist:
+#             return JsonResponse({"success": False, "message": "Utilisateur introuvable."}, status=404)
+#         except Exception as e:
+#             return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class UpdateUserProfileView(View):
+#     def patch(self, request, uuid):
+#         try:
+#             data = json.loads(request.body)
+#             user = TblUser.objects.get(uuid=uuid)
+#
+#             # Mise à jour des informations générales
+#             user.nom = data.get('nom', user.nom)
+#             user.prenom = data.get('prenom', user.prenom)
+#             user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
+#             user.email = data.get('email', user.email)
+#
+#             # Mise à jour des informations spécifiques pour les coiffeuses
+#             if user.type == 'coiffeuse':
+#                 if 'denomination_sociale' in data:
+#                     user.coiffeuse.denomination_sociale = data['denomination_sociale']
+#                     user.coiffeuse.save()
+#                 if 'tva' in data:
+#                     user.coiffeuse.tva = data['tva']
+#                     user.coiffeuse.save()
+#                 if 'position' in data:
+#                     user.coiffeuse.position = data['position']
+#                     user.coiffeuse.save()
+#
+#             user.save()
+#
+#             return JsonResponse({"success": True, "message": "Profil mis à jour avec succès."})
+#
+#         except TblUser.DoesNotExist:
+#             return JsonResponse({"success": False, "message": "Utilisateur introuvable."}, status=404)
+#         except Exception as e:
+#             return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 @csrf_exempt
