@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/list_coiffeuses/', list_coiffeuses, name='list_coiffeuses'),
     path('api/get_user_profile/<str:userUuid>/', views.get_user_profile, name='get_user_profile'),
     path('api/update_user_profile/<str:uuid>/', UpdateUserProfileView.as_view(), name='update_user_profile'),
+    path('api/get_id_and_type_from_uuid/<str:uuid>/', views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
 ]#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Ajoutez les URL pour servir les fichiers médias en mode développement

@@ -1,12 +1,10 @@
 import logging
 from datetime import datetime
-
 from django.core.validators import validate_email
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, TblUser, TblServiceTemps, TblServicePrix, \
     TblPrix, TblTemps, TblService, TblSalon
@@ -126,11 +124,6 @@ def create_user_profile(request):
 #*************************************************************************************************************
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import get_object_or_404
-from hairbnb.models import TblUser, TblCoiffeuse, TblClient
-
 #////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @csrf_exempt
 def get_user_profile(request, userUuid):
@@ -140,6 +133,7 @@ def get_user_profile(request, userUuid):
 
         # Construire la réponse
         user_data = {
+            # "id": user.id,
             "uuid": user.uuid,
             "nom": user.nom,
             "prenom": user.prenom,
@@ -312,6 +306,29 @@ def get_user_profile(request, userUuid):
 #*************************************************************************************************************
 
 
+#**************************************************************************************************************
+
+@csrf_exempt
+def get_id_and_type_from_uuid(request, uuid):
+    try:
+        # Rechercher l'utilisateur par UUID
+        user = get_object_or_404(TblUser, uuid=uuid)
+
+        # Retourner l'id et le type de l'utilisateur
+        return JsonResponse({
+            'success': True,
+            'idTblUser': user.idTblUser,
+            'type': user.type,  # Ajout du type
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+#*************************************************************************************************************
+
+
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -337,6 +354,7 @@ class UpdateUserProfileView(View):
             user.nom = data.get('nom', user.nom)
             user.prenom = data.get('prenom', user.prenom)
             user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
+            user.type = data.get('type', user.type)
 
             if 'email' in data:
                 try:
@@ -392,98 +410,6 @@ class UpdateUserProfileView(View):
             logger.error(f"Erreur : {str(e)}")
             return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
 
-
-
-# @method_decorator(csrf_exempt, name='dispatch')
-# class UpdateUserProfileView(View):
-#     def patch(self, request, uuid):
-#         try:
-#             # Charger les données de la requête
-#             data = json.loads(request.body)
-#
-#             # Récupérer l'utilisateur par UUID
-#             user = TblUser.objects.get(uuid=uuid)
-#
-#             # Mise à jour des champs généraux
-#             user.nom = data.get('nom', user.nom)
-#             user.prenom = data.get('prenom', user.prenom)
-#             user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
-#
-#             if 'email' in data:
-#                 try:
-#                     validate_email(data['email'])
-#                     user.email = data['email']
-#                 except ValidationError:
-#                     return JsonResponse({"success": False, "message": "Email non valide."}, status=400)
-#
-#             if 'adresse' in data:
-#                 # Mise à jour ou création de l'adresse associée
-#                 adresse_data = data['adresse']
-#                 if isinstance(adresse_data, dict):
-#                     adresse = user.adresse or TblAdresse()
-#                     adresse.numero = adresse_data.get('numero', adresse.numero)
-#                     adresse.boite_postale = adresse_data.get('boite_postale', adresse.boite_postale)
-#                     if 'rue_id' in adresse_data:
-#                         adresse.rue_id = adresse_data['rue_id']
-#                     adresse.save()
-#                     user.adresse = adresse
-#
-#             # Mise à jour des champs spécifiques pour les coiffeuses
-#             if user.type == 'coiffeuse' and hasattr(user, 'coiffeuse'):
-#                 coiffeuse = user.coiffeuse
-#                 coiffeuse.denomination_sociale = data.get('denomination_sociale', coiffeuse.denomination_sociale)
-#                 coiffeuse.tva = data.get('tva', coiffeuse.tva)
-#                 coiffeuse.position = data.get('position', coiffeuse.position)
-#                 coiffeuse.save()
-#
-#             # Sauvegarder les modifications de l'utilisateur
-#             user.save()
-#
-#             return JsonResponse({"success": True, "message": "Profil mis à jour avec succès."})
-#
-#         except TblUser.DoesNotExist:
-#             return JsonResponse({"success": False, "message": "Utilisateur introuvable."}, status=404)
-#         except Exception as e:
-#             return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
-
-
-
-# @method_decorator(csrf_exempt, name='dispatch')
-# class UpdateUserProfileView(View):
-#     def patch(self, request, uuid):
-#         try:
-#             data = json.loads(request.body)
-#             user = TblUser.objects.get(uuid=uuid)
-#
-#             # Mise à jour des informations générales
-#             user.nom = data.get('nom', user.nom)
-#             user.prenom = data.get('prenom', user.prenom)
-#             user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
-#             user.email = data.get('email', user.email)
-#
-#             # Mise à jour des informations spécifiques pour les coiffeuses
-#             if user.type == 'coiffeuse':
-#                 if 'denomination_sociale' in data:
-#                     user.coiffeuse.denomination_sociale = data['denomination_sociale']
-#                     user.coiffeuse.save()
-#                 if 'tva' in data:
-#                     user.coiffeuse.tva = data['tva']
-#                     user.coiffeuse.save()
-#                 if 'position' in data:
-#                     user.coiffeuse.position = data['position']
-#                     user.coiffeuse.save()
-#
-#             user.save()
-#
-#             return JsonResponse({"success": True, "message": "Profil mis à jour avec succès."})
-#
-#         except TblUser.DoesNotExist:
-#             return JsonResponse({"success": False, "message": "Utilisateur introuvable."}, status=404)
-#         except Exception as e:
-#             return JsonResponse({"success": False, "message": f"Erreur: {str(e)}"}, status=400)
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
 @csrf_exempt
 def create_salon(request):
     """
@@ -497,7 +423,7 @@ def create_salon(request):
             else:
                 data = request.POST
 
-            # Ajoutez des logs pour vérifier les données reçues
+            # Logs pour débogage
             print("Requête reçue :", data)
             print("Fichiers reçus :", request.FILES)
 
@@ -506,11 +432,7 @@ def create_salon(request):
             slogan = data.get('slogan')
             logo = request.FILES.get('logo_salon')  # Fichier logo
 
-            print("UUID :", user_uuid)
-            print("Slogan :", slogan)
-            print("Logo :", logo)
-
-            # Validez la présence des champs obligatoires
+            # Validation des champs
             if not user_uuid or not slogan:
                 return JsonResponse(
                     {"status": "error", "message": "UUID utilisateur et slogan sont obligatoires"},
@@ -525,27 +447,100 @@ def create_salon(request):
                     status=404
                 )
 
-            # Créez ou mettez à jour le salon pour la coiffeuse
-            coiffeuse, created = TblCoiffeuse.objects.update_or_create(
-                idTblUser=user,
+            # Vérifiez si la coiffeuse existe
+            coiffeuse = TblCoiffeuse.objects.filter(idTblUser=user).first()
+            if not coiffeuse:
+                return JsonResponse(
+                    {"status": "error", "message": "Coiffeuse introuvable"},
+                    status=404
+                )
+
+            # Créez ou mettez à jour le salon
+            salon, created = TblSalon.objects.update_or_create(
+                coiffeuse=coiffeuse,
                 defaults={
                     'slogan': slogan,
                     'logo_salon': logo
                 }
             )
 
-            if created:
-                print(f"Salon créé pour la coiffeuse {user.nom} {user.prenom}")
-            else:
-                print(f"Salon mis à jour pour la coiffeuse {user.nom} {user.prenom}")
-
-            return JsonResponse({"status": "success", "message": "Salon créé/mis à jour avec succès"}, status=201)
+            message = "Salon créé avec succès" if created else "Salon mis à jour avec succès"
+            return JsonResponse(
+                {"status": "success", "message": message, "salon_id": salon.idTblSalon},
+                status=201
+            )
 
         except Exception as e:
             print(f"Erreur : {str(e)}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+
+
+
+# @csrf_exempt
+# def create_salon(request):
+#     """
+#     Crée un salon pour une coiffeuse en fonction des données envoyées via une requête POST.
+#     """
+#     if request.method == 'POST':
+#         try:
+#             # Déterminez si les données sont envoyées sous forme JSON ou via un formulaire (POST multipart)
+#             if request.content_type == "application/json":
+#                 data = json.loads(request.body)
+#             else:
+#                 data = request.POST
+#
+#             # Ajoutez des logs pour vérifier les données reçues
+#             print("Requête reçue :", data)
+#             print("Fichiers reçus :", request.FILES)
+#
+#             # Champs obligatoires
+#             user_uuid = data.get('userUuid')
+#             slogan = data.get('slogan')
+#             logo = request.FILES.get('logo_salon')  # Fichier logo
+#
+#             print("UUID :", user_uuid)
+#             print("Slogan :", slogan)
+#             print("Logo :", logo)
+#
+#             # Validez la présence des champs obligatoires
+#             if not user_uuid or not slogan:
+#                 return JsonResponse(
+#                     {"status": "error", "message": "UUID utilisateur et slogan sont obligatoires"},
+#                     status=400
+#                 )
+#
+#             # Vérifiez si l'utilisateur existe
+#             user = TblUser.objects.filter(uuid=user_uuid, type='coiffeuse').first()
+#             if not user:
+#                 return JsonResponse(
+#                     {"status": "error", "message": "Utilisateur introuvable ou non autorisé"},
+#                     status=404
+#                 )
+#
+#             # Créez ou mettez à jour le salon pour la coiffeuse
+#             coiffeuse, created = TblCoiffeuse.objects.update_or_create(
+#                 idTblUser=user,
+#                 defaults={
+#                     'slogan': slogan,
+#                     'logo_salon': logo
+#                 }
+#             )
+#
+#             if created:
+#                 print(f"Salon créé pour la coiffeuse {user.nom} {user.prenom}")
+#             else:
+#                 print(f"Salon mis à jour pour la coiffeuse {user.nom} {user.prenom}")
+#
+#             return JsonResponse({"status": "success", "message": "Salon créé/mis à jour avec succès"}, status=201)
+#
+#         except Exception as e:
+#             print(f"Erreur : {str(e)}")
+#             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+#
+#     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
 
 
 
@@ -706,16 +701,6 @@ def coiffeuse_services(request, coiffeuse_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Erreur serveur : {str(e)}'}, status=500)
 
-
-
-# def coiffeuse_services(request, coiffeuse_id):
-#     try:
-#         coiffeuse = TblCoiffeuse.objects.get(id=coiffeuse_id)
-#         services = TblService.objects.filter(salon__coiffeuse=coiffeuse)
-#         data = [{"idTblService": service.idTblService, "intitule_service": service.intitule_service, "description": service.description, "prix": service.prix.prix if service.prix else None, "temps_minutes": service.temps.minutes if service.temps else None} for service in services]
-#         return JsonResponse(data, safe=False)
-#     except TblCoiffeuse.DoesNotExist:
-#         return JsonResponse({"status": "error", "message": "Coiffeuse introuvable"}, status=404)
 
 @csrf_exempt
 def ServicesListView(request):
