@@ -34,3 +34,53 @@ class CoiffeuseData:
 
     def to_dict(self):
         return self.__dict__
+
+class ServiceData:
+    def __init__(self, service):
+        self.idTblService = service.idTblService
+        self.intitule_service = service.intitule_service
+        self.description = service.description
+
+        # Récupération du temps (via la table de jonction)
+        service_temps = service.service_temps.first()
+        self.temps_minutes = service_temps.temps.minutes if service_temps else None
+
+        # Récupération du prix (via la table de jonction)
+        service_prix = service.service_prix.first()
+        self.prix = service_prix.prix.prix if service_prix else None
+
+    def to_dict(self):
+        return self.__dict__
+
+class SalonData:
+    def __init__(self, salon):
+        self.idTblSalon = salon.idTblSalon
+        self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
+        self.services = [ServiceData(service.service).to_dict() for service in salon.salon_service.all()]
+
+    def to_dict(self):
+        return self.__dict__
+
+class FullSalonServiceData:
+    def __init__(self, salon_service):
+        # Informations sur le service
+        self.idTblService = salon_service.service.idTblService
+        self.intitule_service = salon_service.service.intitule_service
+        self.description = salon_service.service.description
+
+        # Temps et prix liés au service (via la table de jonction)
+        service_temps = salon_service.service.service_temps.first()
+        self.temps_minutes = service_temps.temps.minutes if service_temps else None
+
+        service_prix = salon_service.service.service_prix.first()
+        self.prix = service_prix.prix.prix if service_prix else None
+
+        # Informations sur le salon et la coiffeuse
+        self.idTblSalon = salon_service.salon.idTblSalon
+        self.coiffeuse_id = salon_service.salon.coiffeuse.idTblUser.idTblUser
+
+    def to_dict(self):
+        return self.__dict__
+
+
+
