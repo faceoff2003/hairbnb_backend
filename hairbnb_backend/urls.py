@@ -14,31 +14,35 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
 from django.conf.urls.static import static
-from django.urls import path
-from hairbnb import views
+from django.contrib import admin
+from django.urls import path, include
+from hairbnb import views, urls
+
 from hairbnb.views import create_user_profile, home, check_user_profile, ServicesListView, add_or_update_service, \
-    coiffeuse_services, list_coiffeuses, get_user_profile, UpdateUserProfileView
-from django.conf import settings
+    coiffeuse_services, list_coiffeuses, get_user_profile, UpdateUserProfileView, add_service_to_salon
+from hairbnb.views.users_serializers_views import get_coiffeuse_by_uuid
+from hairbnb_backend import settings
 
 urlpatterns = [
     path('', home, name='home'),  # Route pour la page d'accueil
     path('admin/', admin.site.urls),
     path('api/create-profile/', create_user_profile, name='create_user_profile'),
-    path('api/check-user-profile/', views.check_user_profile, name='check_user_profile'),
-    path('api/create_salon/', views.create_salon, name='create_salon'),
+    path('api/check-user-profile/', views.views.check_user_profile, name='check_user_profile'),
+    path('api/create_salon/', views.views.create_salon, name='create_salon'),
     path('api/services/', ServicesListView, name='services-list'),
     #path('api/add_or_update_service/', add_or_update_service, name='add_or_update_service'),
     path('api/add_or_update_service/<int:service_id>/', views.add_or_update_service, name='add_or_update_service'),
-    path('api/add_or_update_service/', views.add_or_update_service, name='add_or_update_service_without_id'),
+    path('api/add_or_update_service/', views.views.add_or_update_service, name='add_or_update_service_without_id'),
     path('api/coiffeuse_services/<int:coiffeuse_id>/', coiffeuse_services, name='coiffeuse_services'),
     path('api/list_coiffeuses/', list_coiffeuses, name='list_coiffeuses'),
-    path('api/get_user_profile/<str:userUuid>/', views.get_user_profile, name='get_user_profile'),
+    path('api/get_user_profile/<str:userUuid>/', views.views.get_user_profile, name='get_user_profile'),
     path('api/update_user_profile/<str:uuid>/', UpdateUserProfileView.as_view(), name='update_user_profile'),
-    path('api/get_id_and_type_from_uuid/<str:uuid>/', views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
-]#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('api/get_id_and_type_from_uuid/<str:uuid>/', views.views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
+    path('api/add_service_to_salon/', add_service_to_salon, name='add_service_to_salon'),
+    path('api/', include('hairbnb.urls.serializers_urls')),  # Inclure les routes de serializers_urls.py
+]
 
-# Ajoutez les URL pour servir les fichiers médias en mode développement
-if settings.DEBUG:  # Cette ligne s'assure que cela fonctionne uniquement en mode développement
+# Ajoutez ceci pour gérer les fichiers médias (Seulement en mode DEBUG)
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

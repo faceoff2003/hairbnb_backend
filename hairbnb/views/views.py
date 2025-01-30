@@ -6,9 +6,9 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 import json
-from .models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, TblUser, TblServiceTemps, TblServicePrix, \
+from hairbnb.models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, TblUser, TblServiceTemps, TblServicePrix, \
     TblPrix, TblTemps, TblService, TblSalon, TblSalonService
-from .services.geolocation_service import GeolocationService
+from hairbnb.services.geolocation_service import GeolocationService
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
