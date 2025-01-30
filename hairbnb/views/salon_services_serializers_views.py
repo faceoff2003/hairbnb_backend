@@ -2,64 +2,73 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from hairbnb.models import TblService, TblSalonService, TblCoiffeuse, TblSalon, TblTemps, TblPrix, TblServicePrix, TblServiceTemps
-from hairbnb.business.business_logic import ServiceData, SalonData, FullSalonServiceData
-from hairbnb.serializers.salon_services_serializers import ServiceSerializer
+from hairbnb.business.business_logic import ServiceData, SalonData
 
 
 # ✅ Récupérer tous les services d'une coiffeuse via son salon
-
 @api_view(['GET'])
 def get_services_by_coiffeuse(request, coiffeuse_id):
     try:
-        salon_services = TblSalonService.objects.filter(salon__coiffeuse__idTblUser=coiffeuse_id).select_related(
-            'salon', 'service', 'salon__coiffeuse')
-        services_data = [FullSalonServiceData(salon_service).to_dict() for salon_service in salon_services]
+        salon = TblSalon.objects.get(coiffeuse__idTblUser=coiffeuse_id)
+        salon_data = SalonData(salon).to_dict()
+        return Response({"status": "success", "salon": salon_data}, status=200)
 
-        return Response({"status": "success", "services": services_data}, status=200)
-
-    except TblSalonService.DoesNotExist:
-        return Response({"status": "error", "message": "Aucun service trouvé pour cette coiffeuse."}, status=404)
-
-# @api_view(['GET'])
-# def get_services_by_coiffeuse(request, coiffeuse_id):
-#     try:
-#         salon = TblSalon.objects.get(coiffeuse__idTblUser=coiffeuse_id)
-#         salon_data = SalonData(salon).to_dict()
-#         return Response({"status": "success", "salon": salon_data}, status=200)
-#
-#     except TblSalon.DoesNotExist:
-#         return Response({"status": "error", "message": "Aucun salon trouvé pour cette coiffeuse."}, status=404)
+    except TblSalon.DoesNotExist:
+        return Response({"status": "error", "message": "Aucun salon trouvé pour cette coiffeuse."}, status=404)
 
 
 # ✅ Ajouter un service à une coiffeuse
 
 @api_view(['POST'])
-def add_service_to_salon(request):
+def add_service_to_coiffeuse(request, coiffeuse_id):
+    print(f"🔍 Requête reçue pour coiffeuse_id: {coiffeuse_id}")
+    print(f"📩 Données reçues: {request.data}")
+
     try:
-        salon_id = request.data.get('idTblSalon')
-        service_data = request.data.get('service')
+        # Vérifier si la coiffeuse a un salon
+        salon = TblSalon.objects.get(coiffeuse__idTblUser=coiffeuse_id)
+        print(f"✅ Salon trouvé: {salon}")
 
-        # Validation des données
-        if not salon_id or not service_data:
-            return Response({"status": "error", "message": "Données invalides."}, status=400)
+        # Extraire les données
+        intitule_service = request.data.get('intitule_service')
+        description = request.data.get('description', '')
+        temps_minutes = request.data.get('temps')
+        prix_montant = request.data.get('prix')
 
-        # Récupération du salon
-        salon = TblSalon.objects.get(idTblSalon=salon_id)
+        # Vérifier si les champs sont bien remplis
+        if not intitule_service or not prix_montant or not temps_minutes:
+            return Response({"status": "error", "message": "Champs manquants"}, status=400)
 
-        # Création du service
-        service_serializer = ServiceSerializer(data=service_data)
-        if service_serializer.is_valid():
-            service = service_serializer.save()
-            TblSalonService.objects.create(salon=salon, service=service)
+        # Créer le service
+        service = TblService.objects.create(intitule_service=intitule_service, description=description)
+        print(f"✅ Service ajouté: {service}")
 
-            return Response({"status": "success", "message": "Service ajouté avec succès."}, status=201)
-        else:
-            return Response({"status": "error", "errors": service_serializer.errors}, status=400)
+        # Associer Temps
+        temps, _ = TblTemps.objects.get_or_create(minutes=temps_minutes)
+        TblServiceTemps.objects.create(service=service, temps=temps)
+
+        # 🔍 Vérifier si un prix existe déjà sans lever d'erreur
+        prix = TblPrix.objects.filter(prix=prix_montant).first()
+
+        # 🛠️ Si aucun prix trouvé, on le crée
+        if not prix:
+            prix = TblPrix.objects.create(prix=prix_montant)
+
+        TblServicePrix.objects.create(service=service, prix=prix)
+
+        # Lier au salon
+        TblSalonService.objects.create(salon=salon, service=service)
+        print("✅ Association Salon-Service créée.")
+
+        return Response({"status": "success", "message": "Service ajouté avec succès."}, status=201)
 
     except TblSalon.DoesNotExist:
-        return Response({"status": "error", "message": "Salon introuvable."}, status=404)
+        print("❌ Erreur: Aucun salon trouvé pour cette coiffeuse.")
+        return Response({"status": "error", "message": "Aucun salon trouvé pour cette coiffeuse."}, status=404)
 
-
+    except Exception as e:
+        print(f"❌ Erreur interne : {e}")
+        return Response({"status": "error", "message": str(e)}, status=500)
 # @api_view(['POST'])
 # def add_service_to_coiffeuse(request, coiffeuse_id):
 #     try:
@@ -104,13 +113,16 @@ def update_service(request, service_id):
         service.save()
 
         # Mettre à jour le temps et le prix
+        # ✅ Gestion du temps (évite les doublons)
         if temps_minutes:
             temps, _ = TblTemps.objects.get_or_create(minutes=temps_minutes)
             TblServiceTemps.objects.update_or_create(service=service, defaults={'temps': temps})
 
+        # ✅ Gestion du prix (évite les doublons)
         if prix_montant:
-            prix, _ = TblPrix.objects.get_or_create(prix=prix_montant)
-            TblServicePrix.objects.update_or_create(service=service, defaults={'prix': prix})
+            prix_obj, created = TblPrix.objects.get_or_create(prix=prix_montant)
+            TblServicePrix.objects.update_or_create(service=service, defaults={'prix': prix_obj})
+
 
         return Response({"status": "success", "message": "Service mis à jour."}, status=200)
 
@@ -120,12 +132,11 @@ def update_service(request, service_id):
 
 # ✅ Supprimer un service
 @api_view(['DELETE'])
-def delete_service_from_salon(request, salon_id, service_id):
+def delete_service(request, service_id):
     try:
-        salon_service = TblSalonService.objects.get(salon__idTblSalon=salon_id, service__idTblService=service_id)
-        salon_service.delete()
-        return Response({"status": "success", "message": "Service supprimé avec succès."}, status=200)
+        service = TblService.objects.get(idTblService=service_id)
+        service.delete()
+        return Response({"status": "success", "message": "Service supprimé."}, status=200)
 
-    except TblSalonService.DoesNotExist:
-        return Response({"status": "error", "message": "Service non trouvé pour ce salon."}, status=404)
-
+    except TblService.DoesNotExist:
+        return Response({"status": "error", "message": "Service introuvable."}, status=404)

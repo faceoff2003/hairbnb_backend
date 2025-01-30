@@ -104,7 +104,7 @@ class TblClient(models.Model):
 
 # Table pour gérer les temps
 class TblTemps(models.Model):
-    idTblTemps = models.AutoField(primary_key=True)
+    idTblTemps = models.AutoField(primary_key=True, unique=True)
     minutes = models.PositiveIntegerField()
 
     def __str__(self):
@@ -114,10 +114,18 @@ class TblTemps(models.Model):
 # Table pour gérer les prix
 class TblPrix(models.Model):
     idTblPrix = models.AutoField(primary_key=True)
-    prix = models.DecimalField(max_digits=10, decimal_places=2)  # Prix en euros
+    prix = models.DecimalField(max_digits=10, decimal_places=2, unique=True)  # ✅ UNIQUE
 
     def __str__(self):
         return f"{self.prix} €"
+
+
+# class TblPrix(models.Model):
+#     idTblPrix = models.AutoField(primary_key=True)
+#     prix = models.DecimalField(max_digits=10, decimal_places=2)  # Prix en euros
+#
+#     def __str__(self):
+#         return f"{self.prix} €"
 
 
 # Table pour gérer les services
@@ -146,7 +154,6 @@ class TblSalon(models.Model):
     services = models.ManyToManyField(
         TblService, related_name='salons', through='TblSalonService'
     )
-
     def __str__(self):
         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
@@ -204,7 +211,7 @@ class TblServicePrix(models.Model):
     )
 
     class Meta:
-        unique_together = ('service', 'prix')
+        unique_together = ('service',)  # Chaque service doit avoir une seule ligne dans TblServicePrix
 
     def __str__(self):
         return f"Prix de {self.prix.prix} € pour le service '{self.service.intitule_service}'"
