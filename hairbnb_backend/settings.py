@@ -82,6 +82,9 @@ WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# ✅ Ligne pour forcer l'encodage en UTF-8
+DEFAULT_CHARSET = 'utf-8'
+
 DATABASES = {
     'default': {
          'ENGINE': 'django.db.backends.postgresql',
@@ -119,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
 TIME_ZONE = 'UTC'
 

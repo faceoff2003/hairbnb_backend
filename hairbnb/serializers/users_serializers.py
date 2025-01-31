@@ -59,62 +59,34 @@ class ClientSerializer(serializers.ModelSerializer):
         fields = ['idTblUser', 'user']
 
 
+class CurrentUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour récupérer l'utilisateur actuellement connecté,
+    qu'il soit Client ou Coiffeuse.
+    """
+    extra_data = serializers.SerializerMethodField()
 
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = TblUser
-#         fields = [
-#             'idTblUser',
-#             'uuid',
-#             'nom',
-#             'prenom',
-#             'email',
-#             'type',
-#             'sexe',
-#             'numero_telephone',
-#             'date_naissance',
-#             'is_active',
-#             'adresse',  # Tu peux ajouter un serializer pour adresse si nécessaire
-#             'photo_profil'
-#         ]
-#
-# class CoiffeuseSerializer(serializers.ModelSerializer):
-#     user = UserSerializer(source='idTblUser', read_only=True)
-#
-#     class Meta:
-#         model = TblCoiffeuse
-#         fields = [
-#             'id',
-#             'user',  # Inclut toutes les informations de TblUser
-#             'denomination_sociale',
-#             'tva',
-#             'position'
-#         ]
-#
-# class RueSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = TblRue
-#         fields = '__all__'  # Inclure tous les champs de la rue
-#
-# class LocaliteSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = TblLocalite
-#         fields = '__all__'  # Inclure tous les champs de la localité
-#
-# class AdresseSerializer(serializers.ModelSerializer):
-#     localite = LocaliteSerializer()  # Inclure la localité
-#     rue = RueSerializer()  # Inclure la rue
-#
-#     class Meta:
-#         model = TblAdresse
-#         fields = '__all__'
-#
-# class ClientSerializer(serializers.ModelSerializer):
-#     user = UserSerializer(source='idTblUser', read_only=True)
-#
-#     class Meta:
-#         model = TblClient
-#         fields = [
-#             'id',
-#             'user'  # Inclut toutes les informations de TblUser
-#         ]
+    class Meta:
+        model = TblUser
+        fields = [
+            'uuid', 'nom', 'prenom', 'email', 'numero_telephone', 'date_naissance',
+            'sexe', 'is_active', 'photo_profil', 'type', 'extra_data'
+        ]
+
+    def get_extra_data(self, obj):
+        """Retourne les informations spécifiques selon le type d'utilisateur (coiffeuse ou client)."""
+        if obj.type == "coiffeuse":
+            try:
+                coiffeuse = TblCoiffeuse.objects.get(idTblUser=obj)
+                return CoiffeuseSerializer(coiffeuse).data
+            except TblCoiffeuse.DoesNotExist:
+                return None
+        elif obj.type == "client":
+            try:
+                client = TblClient.objects.get(idTblUser=obj)
+                return ClientSerializer(client).data
+            except TblClient.DoesNotExist:
+                return None
+        return None
+
+

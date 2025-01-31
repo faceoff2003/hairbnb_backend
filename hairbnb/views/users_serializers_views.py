@@ -1,9 +1,10 @@
 from django.http import JsonResponse
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from ..models import TblCoiffeuse, TblClient, TblUser
-from ..serializers.users_serializers import CoiffeuseSerializer, ClientSerializer
+from ..serializers.users_serializers import CoiffeuseSerializer, ClientSerializer, CurrentUserSerializer
 
 
 #*****************************************Afficher la coiffeuse****************************************
@@ -76,4 +77,21 @@ def update_client(request, uuid):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# **************************************************************************************************************************
+
+# **************************************************************************************************************************
+                                                    #get_current_user
+# **************************************************************************************************************************
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Assure que l'utilisateur est connecté
+def get_current_user(request):
+    """
+    API Endpoint pour récupérer les informations du current user.
+    """
+    try:
+        user = TblUser.objects.get(uuid=request.tbluser.uuid)  # On récupère l'utilisateur via son UUID Firebase
+        serializer = CurrentUserSerializer(user)
+        return Response({"status": "success", "user": serializer.data}, status=200)
+    except TblUser.DoesNotExist:
+        return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
 # **************************************************************************************************************************
