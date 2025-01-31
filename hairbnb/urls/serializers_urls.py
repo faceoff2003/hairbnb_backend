@@ -1,9 +1,10 @@
 from django.urls import path
 
+from hairbnb.views.geolocation_serializers_views import coiffeuses_proches
 from hairbnb.views.salon_services_serializers_views import get_services_by_coiffeuse, \
     update_service, delete_service, add_service_to_coiffeuse
 from hairbnb.views.users_serializers_views import get_coiffeuse_by_uuid, get_client_by_uuid, update_coiffeuse, \
-    update_client
+    update_client, get_current_user, get_coiffeuses_info
 
 urlpatterns = [
     path('get_coiffeuse_by_uuid/<str:uuid>/', get_coiffeuse_by_uuid, name='get_coiffeuse_by_uuid'),
@@ -14,4 +15,8 @@ urlpatterns = [
     path('add_service_to_coiffeuse/<int:coiffeuse_id>/', add_service_to_coiffeuse, name='add_service_to_coiffeuse'),
     path('update_service/<int:service_id>/', update_service, name='update_service'),
     path('delete_service/<int:service_id>/', delete_service, name='delete_service'),
+    path('coiffeuses_proches/', coiffeuses_proches, name='coiffeuses_proches'),
+    path('get_current_user/<str:uuid>/', get_current_user, name='get_current_user'),
+    path('get_coiffeuses_info/', get_coiffeuses_info, name="get_coiffeuses_info"),
+
 ]
