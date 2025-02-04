@@ -1,6 +1,7 @@
 from django.contrib import admin
-from .models import TblLocalite, TblRue, TblAdresse, TblUser, TblCoiffeuse, TblClient, \
-    TblSalon, TblImageSalon, TblService, TblPrix, TblTemps, TblSalonService, TblServicePrix, TblServiceTemps
+from hairbnb.models import TblLocalite, TblRue, TblAdresse, TblUser, TblCoiffeuse, TblClient, \
+    TblSalon, TblImageSalon, TblService, TblPrix, TblTemps, TblSalonService, TblServicePrix, TblServiceTemps, TblCart, \
+    TblCartItem, TblPromotion
 
 admin.site.register(TblLocalite)
 admin.site.register(TblRue)
@@ -16,3 +17,6 @@ admin.site.register(TblTemps)
 admin.site.register(TblSalonService)
 admin.site.register(TblServicePrix)
 admin.site.register(TblServiceTemps)
+admin.site.register(TblCart)
+admin.site.register(TblCartItem)
+admin.site.register(TblPromotion)

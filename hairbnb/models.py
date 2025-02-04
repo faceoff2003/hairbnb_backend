@@ -1,5 +1,7 @@
-from django.db import models
+from _pydecimal import Decimal
 
+from django.db import models
+from django.utils.timezone import now
 from hairbnb.services.upload_services import salon_image_upload_to
 
 
@@ -215,3 +217,59 @@ class TblServicePrix(models.Model):
 
     def __str__(self):
         return f"Prix de {self.prix.prix} € pour le service '{self.service.intitule_service}'"
+
+
+# 📌 Modèle du panier pour chaque utilisateur
+class TblCart(models.Model):
+    idTblCart = models.AutoField(primary_key=True)
+    user = models.OneToOneField(
+        TblUser, on_delete=models.CASCADE, related_name="cart"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def total_price(self):
+        """ Calcule le total du panier """
+        return sum(item.total_price() for item in self.items.all())
+
+    def __str__(self):
+        return f"Panier de {self.user.nom} {self.user.prenom} - {self.items.count()} articles"
+
+
+# 📌 Modèle pour les articles du panier
+class TblCartItem(models.Model):
+    idTblCartItem = models.AutoField(primary_key=True)
+    cart = models.ForeignKey(
+        TblCart, on_delete=models.CASCADE, related_name="items"
+    )
+    service = models.ForeignKey(
+        TblService, on_delete=models.CASCADE, related_name="cart_items"
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    def total_price(self):
+        """ Calcule le total pour cet article """
+        prix_service = self.service.service_prix.first().prix.prix  # 🔥 Récupère le prix via la relation
+        return self.quantity * prix_service
+
+    def __str__(self):
+        return f"{self.quantity} x {self.service.intitule_service} (Total: {self.total_price()}€)"
+
+    class Meta:
+        unique_together = ('cart', 'service')  # ✅ Un même service ne peut pas être ajouté plusieurs fois
+
+class TblPromotion(models.Model):
+    idPromotion = models.AutoField(primary_key=True)
+    service = models.ForeignKey('TblService', on_delete=models.CASCADE, related_name="promotions")
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    start_date = models.DateTimeField(default=now)  # Date de début de la promotion
+    end_date = models.DateTimeField()  # Date de fin de la promotion
+
+    def is_active(self):
+        """
+        Vérifie si la promotion est active en fonction de la date actuelle.
+        """
+        return self.start_date <= now() <= self.end_date
+
+    def __str__(self):
+        return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
+

@@ -1,8 +1,12 @@
+from datetime import datetime
+
+from django.utils.timezone import make_aware
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
-from hairbnb.models import TblService, TblSalonService, TblCoiffeuse, TblSalon, TblTemps, TblPrix, TblServicePrix, TblServiceTemps
+
 from hairbnb.business.business_logic import ServiceData, SalonData
+from hairbnb.models import TblService, TblSalonService, TblSalon, TblTemps, TblPrix, TblServicePrix, \
+    TblServiceTemps, TblPromotion
 
 
 # ✅ Récupérer tous les services d'une coiffeuse via son salon
@@ -140,3 +144,89 @@ def delete_service(request, service_id):
 
     except TblService.DoesNotExist:
         return Response({"status": "error", "message": "Service introuvable."}, status=404)
+
+
+@api_view(['POST'])
+def create_promotion(request, service_id):
+    try:
+        print("📥 Données reçues :", request.data)  # 🔥 DEBUG
+
+        service = TblService.objects.get(idTblService=service_id)
+
+        discount_percentage = request.data.get("discount_percentage")
+        start_date_str = request.data.get("start_date")
+        end_date_str = request.data.get("end_date")
+
+        # ✅ Vérifier que les champs sont bien remplis
+        if not discount_percentage or not end_date_str:
+            return Response({"error": "Le pourcentage et la date de fin sont obligatoires."}, status=400)
+
+        # ✅ Corriger la conversion des dates (éviter l'erreur "unconverted data remains")
+        start_date = make_aware(datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d"))
+        end_date = make_aware(datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d"))
+
+        print(f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date}")  # 🔥 DEBUG
+
+        # ✅ Créer la promotion
+        promotion = TblPromotion.objects.create(
+            service=service,
+            discount_percentage=float(discount_percentage),
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        service_data = ServiceData(service).to_dict()
+        return Response({"message": "Promotion créée avec succès.", "service": service_data}, status=201)
+
+    except TblService.DoesNotExist:
+        return Response({"error": "Service introuvable."}, status=404)
+
+    except Exception as e:
+        print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
+        return Response({"error": str(e)}, status=500)
+
+
+# @api_view(['POST'])
+# def create_promotion(request, service_id):
+#     """
+#     Crée une promotion pour un service existant.
+#     """
+#     try:
+#         print("📥 Données reçues :", request.data)  # 🔥 DEBUG
+#
+#         # Vérifie que le service existe
+#         service = TblService.objects.get(idTblService=service_id)
+#
+#         # Récupère les données envoyées
+#         discount_percentage = request.data.get("discount_percentage")
+#         start_date = now()  # ✅ Toujours maintenant
+#         end_date_str = request.data.get("end_date")
+#
+#         # Vérifie que `end_date` existe
+#         if not discount_percentage or not end_date_str:
+#             return Response({"error": "Le pourcentage et la date de fin sont obligatoires."}, status=400)
+#
+#         # ✅ Convertir `end_date` en `datetime` avec timezone
+#         end_date = make_aware(datetime.strptime(end_date_str, "%Y-%m-%d"))
+#
+#         print(f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date}")  # 🔥 DEBUG
+#
+#         # Création de la promotion
+#         promotion = TblPromotion.objects.create(
+#             service=service,
+#             discount_percentage=float(discount_percentage),
+#             start_date=start_date,
+#             end_date=end_date  # ✅ Correction timezone
+#         )
+#
+#         # Retourne le service mis à jour avec la promotion
+#         service_data = ServiceData(service).to_dict()
+#         return Response({"message": "Promotion créée avec succès.", "service": service_data}, status=201)
+#
+#     except TblService.DoesNotExist:
+#         return Response({"error": "Service introuvable."}, status=404)
+#
+#     except Exception as e:
+#         print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
+#         return Response({"error": str(e)}, status=500)
+

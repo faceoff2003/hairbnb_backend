@@ -29,3 +29,5 @@ class SalonSerializer(serializers.ModelSerializer):
     class Meta:
         model = TblSalon
         fields = ['idTblSalon', 'coiffeuse', 'services']
+
+
