@@ -24,14 +24,51 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-5z0had1txu1r8p2fdqjh5#c12zmws%32!1o-ttuxd0)+)82c-s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
 
 #ALLOWED_HOSTS = ['192.168.0.202', '127.0.0.1', 'localhost']
-ALLOWED_HOSTS = ['100.65.181.214','192.168.0.113','hairbnb.site','www.hairbnb.site','127.0.0.1','localhost']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '192.168.0.248',  # Ton IP locale
+    '91.86.52.162',    # Ton IP publique
+    'hairbnb.site',
+    'www.hairbnb.site',
+    'api.hairbnb.site'
+]
+
+#STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+#STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+STATIC_URL = '/static/'
+
+# 📂 Définir où stocker les fichiers statiques collectés
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# 📂 Facultatif : Ajouter un dossier où tu mets tes fichiers statiques manuellement
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+
 
 # Configuration pour le stockage local pour les photos de profil
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+#
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'static'),
+# ]
+#
+# STATIC_URL = '/static/'
+# MEDIA_URL = '/media/'
 
 
 # Application definition
@@ -64,7 +101,8 @@ ROOT_URLCONF = 'hairbnb_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
+        #'DIRS': [BASE_DIR / 'templates']
+        'DIRS': [os.path.join(BASE_DIR, 'templates')]
         ,
         'APP_DIRS': True,
         'OPTIONS': {
@@ -136,24 +174,38 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "https://hairbnb.site",
+    "http://localhost:3000",
+    "http://localhost:50734",
+    "http://127.0.0.1:8080",
+    "http://hairbnb.site",
+    "http://www.hairbnb.site",
+    "http://api.hairbnb.site",
+    "http://91.86.52.162:8080",
+    "http://91.86.52.162"
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://hairbnb.site"]
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site"]
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+
+# CSRF_TRUSTED_ORIGINS = ["https://hairbnb.site"]
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_SSL_REDIRECT = True
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
 
 
 CORS_ALLOW_METHODS = [
@@ -163,4 +215,10 @@ CORS_ALLOW_METHODS = [
     "PATCH",
     "DELETE",
     "OPTIONS"
+]
+
+CORS_ALLOW_HEADERS = [  # Autoriser les en-têtes courants
+    "Authorization",
+    "Content-Type",
+    "X-CSRFToken",
 ]
