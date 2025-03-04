@@ -57,6 +57,9 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_51QxTcwPLEsfXjeyf4PAmUsqK9XGI6G1WG5a7sfE34yfIs2TyBaNkv9DndcodbC7jQxWxgDS7Jobx20eADkzeEyQj00OWORrF13")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_51QxTcwPLEsfXjeyfbxYM0qSVUfouAqtUGbVOTXmf3fr3y6tBtX5aylUzP3xLPniIXWu7hmuBGdvIWJ6fueZZe70d00dn2sPdfv")
+
 
 
 # Configuration pour le stockage local pour les photos de profil

@@ -1,0 +1,411 @@
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+from decimal import Decimal
+from hairbnb.business.business_logic import RendezVousData
+from hairbnb.models import (
+    TblCoiffeuse, TblSalon, TblService, TblRendezVous, TblRendezVousService, TblUser,
+    TblServicePrix, TblServiceTemps, TblPromotion
+)
+
+# 📅 **Créer un rendez-vous avec gestion automatique du prix et de la durée**
+@api_view(['POST'])
+def create_rendez_vous(request):
+    """
+    Créer un rendez-vous pour un client avec une coiffeuse et un salon,
+    en prenant en compte les promotions et en calculant le prix final et la durée totale.
+    """
+    try:
+        print("📌 Requête reçue:", request.data)  # ✅ Log pour voir les données reçues
+
+        user_id = request.data.get('user_id')  # ID du client
+        coiffeuse_id = request.data.get('coiffeuse_id')  # ID de la coiffeuse
+        date_heure = request.data.get('date_heure')  # Date du RDV
+        services_ids = request.data.get('services', [])  # Liste des services sélectionnés
+
+        if not all([user_id, coiffeuse_id, date_heure, services_ids]):
+            return Response({"error": "Tous les champs sont requis."}, status=400)
+
+        # ✅ Vérifie l'utilisateur et que c'est bien un client
+        user = get_object_or_404(TblUser, idTblUser=user_id)
+        client = get_object_or_404(user.clients)
+
+        # ✅ Vérifie la coiffeuse
+        coiffeuse = get_object_or_404(TblCoiffeuse, idTblUser=coiffeuse_id)
+
+        # ✅ Récupère automatiquement l'ID du salon à partir de la coiffeuse
+        salon = get_object_or_404(TblSalon, coiffeuse=coiffeuse)
+
+        print(f"✅ Client trouvé: {client}")
+        print(f"✅ Coiffeuse trouvée: {coiffeuse}")
+        print(f"✅ Salon trouvé: {salon}")
+
+        # Initialisation des totaux
+        total_prix = Decimal("0.00")
+        total_duree = 0
+
+        # Création du rendez-vous
+        rdv = TblRendezVous.objects.create(
+            client=client,
+            coiffeuse=coiffeuse,
+            salon=salon,  # ✅ Plus besoin de l'envoyer depuis le frontend !
+            date_heure=date_heure,
+            statut="en attente",
+            total_prix=0,  # Sera mis à jour après
+            duree_totale=0  # Idem
+        )
+
+        # Ajouter les services au rendez-vous et calculer les totaux
+        for service_id in services_ids:
+            service = get_object_or_404(TblService, idTblService=service_id)
+            print(f"🔍 Service trouvé: {service.intitule_service}")
+
+            # 🔥 Récupère le prix standard
+            prix_service_obj = TblServicePrix.objects.filter(service=service).first()
+            prix_service = prix_service_obj.prix.prix if prix_service_obj else Decimal("0.00")
+            print(f"💰 Prix du service: {prix_service}")
+
+            # 🔥 Récupère la durée estimée
+            temps_service_obj = TblServiceTemps.objects.filter(service=service).first()
+            duree_service = temps_service_obj.temps.minutes if temps_service_obj else 0
+            print(f"⏳ Durée du service: {duree_service} min")
+
+            # 🔥 Vérifier s'il y a une promotion active
+            promo = TblPromotion.objects.filter(
+                service=service,
+                start_date__lte=now(),  # La promo est active au moment de la réservation
+                end_date__gte=now()
+            ).first()
+
+            # ✅ Appliquer la réduction si une promotion existe
+            if promo:
+                reduction = (promo.discount_percentage / Decimal("100")) * prix_service
+                prix_applique = prix_service - reduction  # Prix final avec réduction
+                print(f"🔥 Promo appliquée: {promo.discount_percentage}% -> {prix_applique} €")
+            else:
+                prix_applique = prix_service  # Prix normal sans réduction
+                print("⚠️ Pas de promotion active.")
+
+            # 🔹 Ajouter le service au rendez-vous
+            TblRendezVousService.objects.create(
+                rendez_vous=rdv,
+                service=service,
+                prix_applique=prix_applique,
+                duree_estimee=duree_service
+            )
+
+            # 🔹 Mise à jour des totaux
+            total_prix += prix_applique
+            total_duree += duree_service
+
+        # ✅ Mise à jour des totaux dans le RDV
+        rdv.total_prix = total_prix
+        rdv.duree_totale = total_duree
+        rdv.save()  # Sauvegarde du rendez-vous avec les valeurs mises à jour
+
+        print(f"✅ Rendez-vous créé: {rdv}")
+
+        return Response({
+            "message": "Rendez-vous créé ✅ avec prise en compte des promotions",
+            "rendez_vous": {
+                "id": rdv.idRendezVous,
+                "date_heure": rdv.date_heure,
+                "total_prix": float(total_prix),
+                "duree_totale": total_duree,
+            }
+        }, status=201)
+
+    except Exception as e:
+        print(f"❌ Erreur serveur: {e}")  # ✅ Capture et affiche l'erreur dans la console
+        return Response({"error": f"Erreur serveur: {str(e)}"}, status=500)
+
+
+
+# @api_view(['POST'])
+# def create_rendez_vous(request):
+#     """
+#     Créer un rendez-vous pour un client avec une coiffeuse et un salon,
+#     en prenant en compte les promotions et en calculant le prix final et la durée totale.
+#     """
+#     try:
+#         print("📌 Requête reçue:", request.data)  # ✅ Ajout d'un log pour voir les données reçues
+#
+#         user_id = request.data.get('user_id')  # ID du client
+#         coiffeuse_id = request.data.get('coiffeuse_id')  # ID de la coiffeuse
+#         salon_id = request.data.get('salon_id')  # ID du salon
+#         date_heure = request.data.get('date_heure')  # Date du RDV
+#         services_ids = request.data.get('services', [])  # Liste des services sélectionnés
+#
+#         if not all([user_id, coiffeuse_id, salon_id, date_heure, services_ids]):
+#             return Response({"error": "Tous les champs sont requis."}, status=400)
+#
+#         user = get_object_or_404(TblUser, idTblUser=user_id)  # Vérifie l'utilisateur
+#         client = get_object_or_404(user.clients)  # Vérifie que c'est un client
+#         coiffeuse = get_object_or_404(TblCoiffeuse, idTblUser=coiffeuse_id)  # Vérifie la coiffeuse
+#         salon = get_object_or_404(TblSalon, idTblSalon=salon_id)  # Vérifie le salon
+#
+#         print(f"✅ Client trouvé: {client}")
+#         print(f"✅ Coiffeuse trouvée: {coiffeuse}")
+#         print(f"✅ Salon trouvé: {salon}")
+#
+#         # Initialisation des totaux
+#         total_prix = Decimal("0.00")
+#         total_duree = 0
+#
+#         # Création du rendez-vous
+#         rdv = TblRendezVous.objects.create(
+#             client=client,
+#             coiffeuse=coiffeuse,
+#             salon=salon,
+#             date_heure=date_heure,
+#             statut="en attente",
+#             total_prix=0,  # Sera mis à jour après
+#             duree_totale=0  # Idem
+#         )
+#
+#         # Ajouter les services au rendez-vous et calculer les totaux
+#         for service_id in services_ids:
+#             service = get_object_or_404(TblService, idTblService=service_id)
+#             print(f"🔍 Service trouvé: {service.intitule_service}")
+#
+#             # 🔥 Récupère le prix standard
+#             prix_service_obj = TblServicePrix.objects.filter(service=service).first()
+#             prix_service = prix_service_obj.prix.prix if prix_service_obj else Decimal("0.00")
+#             print(f"💰 Prix du service: {prix_service}")
+#
+#             # 🔥 Récupère la durée estimée
+#             temps_service_obj = TblServiceTemps.objects.filter(service=service).first()
+#             duree_service = temps_service_obj.temps.minutes if temps_service_obj else 0
+#             print(f"⏳ Durée du service: {duree_service} min")
+#
+#             # 🔥 Vérifier s'il y a une promotion active
+#             promo = TblPromotion.objects.filter(
+#                 service=service,
+#                 start_date__lte=now(),  # La promo est active au moment de la réservation
+#                 end_date__gte=now()
+#             ).first()
+#
+#             # ✅ Appliquer la réduction si une promotion existe
+#             if promo:
+#                 reduction = (promo.discount_percentage / Decimal("100")) * prix_service
+#                 prix_applique = prix_service - reduction  # Prix final avec réduction
+#                 print(f"🔥 Promo appliquée: {promo.discount_percentage}% -> {prix_applique} €")
+#             else:
+#                 prix_applique = prix_service  # Prix normal sans réduction
+#                 print("⚠️ Pas de promotion active.")
+#
+#             # 🔹 Ajouter le service au rendez-vous
+#             TblRendezVousService.objects.create(
+#                 rendez_vous=rdv,
+#                 service=service,
+#                 prix_applique=prix_applique,
+#                 duree_estimee=duree_service
+#             )
+#
+#             # 🔹 Mise à jour des totaux
+#             total_prix += prix_applique
+#             total_duree += duree_service
+#
+#         # ✅ Mise à jour des totaux dans le RDV
+#         rdv.total_prix = total_prix
+#         rdv.duree_totale = total_duree
+#         rdv.save()  # Sauvegarde du rendez-vous avec les valeurs mises à jour
+#
+#         print(f"✅ Rendez-vous créé: {rdv}")
+#
+#         return Response({
+#             "message": "Rendez-vous créé ✅ avec prise en compte des promotions",
+#             "rendez_vous": {
+#                 "id": rdv.idRendezVous,
+#                 "date_heure": rdv.date_heure,
+#                 "total_prix": float(total_prix),
+#                 "duree_totale": total_duree,
+#             }
+#         }, status=201)
+#
+#     except Exception as e:
+#         print(f"❌ Erreur serveur: {e}")  # ✅ Capture et affiche l'erreur dans la console
+#         return Response({"error": f"Erreur serveur: {str(e)}"}, status=500)
+
+
+# @api_view(['POST'])
+# def create_rendez_vous(request):
+#     """
+#     Créer un rendez-vous pour un client avec une coiffeuse et un salon,
+#     en prenant en compte les promotions et en calculant le prix final et la durée totale.
+#     """
+#     user_id = request.data.get('user_id')  # ID du client
+#     coiffeuse_id = request.data.get('coiffeuse_id')  # ID de la coiffeuse
+#     salon_id = request.data.get('salon_id')  # ID du salon
+#     date_heure = request.data.get('date_heure')  # Date du RDV
+#     services_ids = request.data.get('services', [])  # Liste des services sélectionnés
+#
+#     user = get_object_or_404(TblUser, idTblUser=user_id)  # Vérifie l'utilisateur
+#     client = get_object_or_404(user.clients)  # Vérifie que c'est un client
+#     coiffeuse = get_object_or_404(TblCoiffeuse, idTblUser=coiffeuse_id)  # Vérifie la coiffeuse
+#     salon = get_object_or_404(TblSalon, idTblSalon=salon_id)  # Vérifie le salon
+#
+#     # Initialisation des totaux
+#     total_prix = Decimal("0.00")
+#     total_duree = 0
+#
+#     # Création du rendez-vous
+#     rdv = TblRendezVous.objects.create(
+#         client=client,
+#         coiffeuse=coiffeuse,
+#         salon=salon,
+#         date_heure=date_heure,
+#         statut="en attente",
+#         total_prix=0,  # Sera mis à jour après
+#         duree_totale=0  # Idem
+#     )
+#
+#     # Ajouter les services au rendez-vous et calculer les totaux
+#     for service_id in services_ids:
+#         service = get_object_or_404(TblService, idTblService=service_id)
+#
+#         # 🔥 Récupère le prix standard
+#         prix_service_obj = TblServicePrix.objects.filter(service=service).first()
+#         prix_service = prix_service_obj.prix.prix if prix_service_obj else Decimal("0.00")
+#
+#         # 🔥 Récupère la durée estimée
+#         temps_service_obj = TblServiceTemps.objects.filter(service=service).first()
+#         duree_service = temps_service_obj.temps.minutes if temps_service_obj else 0
+#
+#         # 🔥 Vérifier s'il y a une promotion active
+#         promo = TblPromotion.objects.filter(
+#             service=service,
+#             start_date__lte=now(),  # La promo est active au moment de la réservation
+#             end_date__gte=now()
+#         ).first()
+#
+#         # ✅ Appliquer la réduction si une promotion existe
+#         if promo:
+#             reduction = (promo.discount_percentage / Decimal("100")) * prix_service
+#             prix_applique = prix_service - reduction  # Prix final avec réduction
+#         else:
+#             prix_applique = prix_service  # Prix normal sans réduction
+#
+#         # 🔹 Ajouter le service au rendez-vous
+#         TblRendezVousService.objects.create(
+#             rendez_vous=rdv,
+#             service=service,
+#             prix_applique=prix_applique,
+#             duree_estimee=duree_service
+#         )
+#
+#         # 🔹 Mise à jour des totaux
+#         total_prix += prix_applique
+#         total_duree += duree_service
+#
+#     # ✅ Mise à jour des totaux dans le RDV
+#     rdv.total_prix = total_prix
+#     rdv.duree_totale = total_duree
+#     rdv.save()  # Sauvegarde du rendez-vous avec les valeurs mises à jour
+#
+#     return Response({
+#         "message": "Rendez-vous créé ✅ avec prise en compte des promotions",
+#         "rendez_vous": RendezVousData(rdv).to_dict()
+#     }, status=201)
+
+
+
+
+
+
+
+
+
+# from rest_framework.response import Response
+# from rest_framework.decorators import api_view
+# from django.shortcuts import get_object_or_404
+# from django.utils.timezone import now
+# from decimal import Decimal
+# from hairbnb.business.business_logic import RendezVousData
+# from hairbnb.models import (
+#     TblCoiffeuse, TblSalon, TblService, TblRendezVous, TblRendezVousService, TblUser,
+#     TblServicePrix, TblServiceTemps, TblPromotion
+# )
+#
+#
+# # 📅 **Créer un rendez-vous avec prise en compte des promotions**
+# @api_view(['POST'])
+# def create_rendez_vous(request):
+#     """
+#     Créer un rendez-vous pour un client avec une coiffeuse et un salon,
+#     en prenant en compte les promotions et en calculant le prix final.
+#     """
+#     user_id = request.data.get('user_id')  # ID du client
+#     coiffeuse_id = request.data.get('coiffeuse_id')  # ID de la coiffeuse
+#     salon_id = request.data.get('salon_id')  # ID du salon
+#     date_heure = request.data.get('date_heure')  # Date du RDV
+#     services_ids = request.data.get('services', [])  # Liste des services sélectionnés
+#
+#     user = get_object_or_404(TblUser, idTblUser=user_id)  # Vérifie l'utilisateur
+#     client = get_object_or_404(user.clients)  # Vérifie que c'est un client
+#     coiffeuse = get_object_or_404(TblCoiffeuse, idTblUser=coiffeuse_id)  # Vérifie la coiffeuse
+#     salon = get_object_or_404(TblSalon, idTblSalon=salon_id)  # Vérifie le salon
+#
+#     # Initialisation des totaux
+#     total_prix = Decimal("0.00")
+#     total_duree = 0
+#
+#     # Création du rendez-vous
+#     rdv = TblRendezVous.objects.create(
+#         client=client,
+#         coiffeuse=coiffeuse,
+#         salon=salon,
+#         date_heure=date_heure,
+#         statut="en attente",
+#         total_prix=0,  # Sera mis à jour après
+#         duree_totale=0  # Idem
+#     )
+#
+#     # Ajouter les services au rendez-vous et calculer les totaux
+#     for service_id in services_ids:
+#         service = get_object_or_404(TblService, idTblService=service_id)
+#
+#         # 🔥 Récupère le prix standard
+#         prix_service_obj = TblServicePrix.objects.filter(service=service).first()
+#         prix_service = prix_service_obj.prix.prix if prix_service_obj else Decimal("0.00")
+#
+#         # 🔥 Récupère la durée estimée
+#         temps_service_obj = TblServiceTemps.objects.filter(service=service).first()
+#         duree_service = temps_service_obj.temps.minutes if temps_service_obj else 0
+#
+#         # 🔥 Vérifier s'il y a une promotion active
+#         promo = TblPromotion.objects.filter(
+#             service=service,
+#             start_date__lte=now(),  # La promo est active au moment de la réservation
+#             end_date__gte=now()
+#         ).first()
+#
+#         # ✅ Appliquer la réduction si une promotion existe
+#         if promo:
+#             reduction = (promo.discount_percentage / Decimal("100")) * prix_service
+#             prix_applique = prix_service - reduction  # Prix final avec réduction
+#         else:
+#             prix_applique = prix_service  # Prix normal sans réduction
+#
+#         # 🔹 Ajouter le service au rendez-vous
+#         TblRendezVousService.objects.create(
+#             rendez_vous=rdv,
+#             service=service,
+#             prix_applique=prix_applique,
+#             duree_estimee=duree_service
+#         )
+#
+#         # 🔹 Mise à jour des totaux
+#         total_prix += prix_applique
+#         total_duree += duree_service
+#
+#     # ✅ Mise à jour des totaux dans le RDV
+#     rdv.total_prix = total_prix
+#     rdv.duree_totale = total_duree
+#     rdv.save()  # Sauvegarde du rendez-vous avec les valeurs mises à jour
+#
+#     return Response({
+#         "message": "Rendez-vous créé ✅ avec prise en compte des promotions",
+#         "rendez_vous": RendezVousData(rdv).to_dict()
+#     }, status=201)

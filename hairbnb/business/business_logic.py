@@ -1,6 +1,7 @@
-from django.utils.timezone import now
+import stripe
 
-from hairbnb.models import TblClient, TblCoiffeuse
+from hairbnb.models import TblClient, TblRendezVous, TblPaiement
+from hairbnb_backend import settings_test
 
 
 class CoiffeuseData:
@@ -171,14 +172,64 @@ class MinimalCoiffeuseData:
         return self.__dict__
 
 # class CartItemData:
+from decimal import Decimal
+from django.utils.timezone import now
+from hairbnb.models import TblPromotion
+
 class CartItemData:
     def __init__(self, cart_item):
-        self.id = cart_item.pk  # Utilisation de pk pour éviter l'erreur
-        self.service = ServiceData(cart_item.service).to_dict()
+        self.id = cart_item.idTblCartItem
+        self.service = self._get_service_data(cart_item.service)
         self.quantity = cart_item.quantity
+
+    def _get_service_data(self, service):
+        """ Récupère les informations du service et applique la promotion si disponible """
+        prix_standard = service.service_prix.first().prix.prix if service.service_prix.exists() else Decimal("0.00")
+
+        # Vérifier s'il y a une promotion active
+        promo = TblPromotion.objects.filter(
+            service=service,
+            start_date__lte=now(),
+            end_date__gte=now()
+        ).first()
+
+        if promo:  # Appliquer la réduction
+            reduction = (promo.discount_percentage / Decimal("100")) * prix_standard
+            prix_final = prix_standard - reduction
+            promo_data = {
+                "idPromotion": promo.idPromotion,
+                "service_id": service.idTblService,
+                "discount_percentage": promo.discount_percentage,
+                "start_date": promo.start_date,
+                "end_date": promo.end_date,
+                "is_active": promo.is_active()
+            }
+        else:  # Pas de promo
+            prix_final = prix_standard
+            promo_data = None
+
+        return {
+            "idTblService": service.idTblService,
+            "intitule_service": service.intitule_service,
+            "description": service.description,
+            "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
+            "prix": float(prix_standard),
+            "promotion": promo_data,
+            "prix_final": float(prix_final)  # ✅ Prix recalculé avec promo appliquée
+        }
 
     def to_dict(self):
         return self.__dict__
+
+
+# class CartItemData:
+#     def __init__(self, cart_item):
+#         self.id = cart_item.pk  # Utilisation de pk pour éviter l'erreur
+#         self.service = ServiceData(cart_item.service).to_dict()
+#         self.quantity = cart_item.quantity
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 
 
@@ -277,5 +328,97 @@ class PromotionData:
 
     def to_dict(self):
         return self.__dict__
+
+class RendezVousServiceData:
+    """Classe pour structurer un service dans un rendez-vous."""
+
+    def __init__(self, service_instance):
+        self.idRendezVousService = service_instance.idRendezVousService
+        self.service = ServiceData(service_instance.service).to_dict()  # Utilise ServiceData pour les détails
+        self.prix_applique = service_instance.prix_applique
+        self.duree_estimee = service_instance.duree_estimee  # Durée estimée en minutes
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class RendezVousData:
+    """Classe pour structurer un rendez-vous."""
+
+    def __init__(self, rdv):
+        self.idRendezVous = rdv.idRendezVous
+        self.client = ClientData(rdv.client).to_dict()
+        self.coiffeuse = CoiffeuseData(rdv.coiffeuse).to_dict()
+        self.salon = SalonData(rdv.salon).to_dict()
+        self.date_heure = rdv.date_heure.isoformat()
+        self.statut = rdv.statut
+        self.total_prix = rdv.total_prix
+        self.duree_totale = rdv.duree_totale
+        self.services = [RendezVousServiceData(s).to_dict() for s in rdv.rendez_vous_services.all()]
+
+    def to_dict(self):
+        return self.__dict__
+
+
+# class PaiementData:
+#     """Classe pour structurer un paiement."""
+#
+#     def __init__(self, paiement):
+#         self.idPaiement = paiement.idPaiement
+#         self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
+#         self.montant_paye = paiement.montant_paye
+#         self.date_paiement = paiement.date_paiement.isoformat()
+#         self.methode = paiement.methode
+#         self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
+#
+#     def to_dict(self):
+#         return self.__dict__
+
+stripe.api_key = settings_test.STRIPE_SECRET_KEY
+
+class PaiementData:
+    """Classe pour structurer un paiement."""
+
+    def __init__(self, paiement):
+        self.idPaiement = paiement.idPaiement
+        self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
+        self.montant_paye = paiement.montant_paye
+        self.date_paiement = paiement.date_paiement.isoformat()
+        self.methode = paiement.methode
+        self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
+
+    def to_dict(self):
+        return self.__dict__
+
+    @staticmethod
+    def create_payment_intent(rendez_vous_id, methode_paiement):
+        """
+        Crée un PaymentIntent Stripe et retourne le client_secret.
+        """
+        try:
+            rdv = TblRendezVous.objects.get(idRendezVous=rendez_vous_id)
+
+            payment_intent = stripe.PaymentIntent.create(
+                amount=int(rdv.total_prix * 100),  # Convertir en centimes
+                currency="eur",
+                payment_method_types=["card"],
+                metadata={"rendez_vous_id": rdv.idRendezVous}
+            )
+
+            # Créer un paiement en attente
+            paiement = TblPaiement.objects.create(
+                rendez_vous=rdv,
+                montant_paye=rdv.total_prix,
+                methode=methode_paiement,
+                statut="en attente"
+            )
+
+            return {"client_secret": payment_intent.client_secret, "paiement": PaiementData(paiement).to_dict()}
+
+        except TblRendezVous.DoesNotExist:
+            return {"error": "Rendez-vous non trouvé"}
+        except Exception as e:
+            return {"error": str(e)}
+
 
 

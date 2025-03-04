@@ -1,19 +1,73 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
-from hairbnb.business.business_logic import CartData
+from hairbnb.business.business_logic import CartData, CartItemData
 from hairbnb.models import TblCart, TblCartItem, TblService, TblUser
 
 # 🛒 **Récupérer le panier d'un utilisateur spécifique**
+# @api_view(['GET'])
+# def get_cart(request, user_id):
+#     """
+#     Récupérer le panier d'un utilisateur via son ID.
+#     """
+#     user = get_object_or_404(TblUser, idTblUser=user_id)  # Vérifie si l'utilisateur existe
+#     cart, created = TblCart.objects.get_or_create(user=user)  # Récupère ou crée le panier
+#
+#     return Response(CartData(cart).to_dict(), status=200)
+
 @api_view(['GET'])
 def get_cart(request, user_id):
-    """
-    Récupérer le panier d'un utilisateur via son ID.
-    """
-    user = get_object_or_404(TblUser, idTblUser=user_id)  # Vérifie si l'utilisateur existe
-    cart, created = TblCart.objects.get_or_create(user=user)  # Récupère ou crée le panier
+    try:
+        user = TblUser.objects.get(idTblUser=user_id)  # Vérifie l'utilisateur
+        cart, created = TblCart.objects.get_or_create(user=user)  # Récupère ou crée le panier
 
-    return Response(CartData(cart).to_dict(), status=200)
+        if not cart.items.exists():
+            return Response({"items": [], "coiffeuse_id": None}, status=200)
+
+        # ✅ Correction : Récupérer la coiffeuse via la table de liaison
+        first_service = cart.items.first().service
+        first_salon_service = first_service.salon_service.first()  # Prend la première relation
+        coiffeuse_id = first_salon_service.salon.coiffeuse.idTblUser.idTblUser if first_salon_service else None
+
+        return Response({
+            "items": [CartItemData(item).to_dict() for item in cart.items.all()],  # ✅ Inclut maintenant la promo
+            "coiffeuse_id": coiffeuse_id
+        }, status=200)
+
+    except TblUser.DoesNotExist:
+        return Response({"error": "Utilisateur introuvable"}, status=404)
+
+    except Exception as e:
+        return Response({"error": f"Erreur interne : {str(e)}"}, status=500)
+
+
+
+# @api_view(['GET'])
+# def get_cart(request, user_id):
+#     try:
+#         user = TblUser.objects.get(idTblUser=user_id)  # Vérifie l'utilisateur
+#         cart, created = TblCart.objects.get_or_create(user=user)  # Récupère ou crée le panier
+#
+#         if not cart.items.exists():
+#             return Response({"items": [], "coiffeuse_id": None}, status=200)
+#
+#         # ✅ Correction : Récupérer la coiffeuse via la table de liaison
+#         first_service = cart.items.first().service
+#         first_salon_service = first_service.salon_service.first()  # Prend la première relation
+#         coiffeuse_id = first_salon_service.salon.coiffeuse.idTblUser.idTblUser if first_salon_service else None
+#
+#         return Response({
+#             "items": [CartItemData(item).to_dict() for item in cart.items.all()],
+#             "coiffeuse_id": coiffeuse_id
+#         }, status=200)
+#
+#     except TblUser.DoesNotExist:
+#         return Response({"error": "Utilisateur introuvable"}, status=404)
+#
+#     except Exception as e:
+#         return Response({"error": f"Erreur interne : {str(e)}"}, status=500)
+
+
 
 
 # ➕ **Ajouter un service au panier**

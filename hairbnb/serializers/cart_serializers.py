@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from hairbnb.models import TblCart, TblCartItem, TblService, TblPrix
+from hairbnb.models import TblCart, TblCartItem
 
 class CartItemSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.intitule_service', read_only=True)

@@ -1,9 +1,7 @@
-from _pydecimal import Decimal
-
 from django.db import models
 from django.utils.timezone import now
 from hairbnb.services.upload_services import salon_image_upload_to
-
+from decimal import Decimal
 
 # Table pour gérer les localités
 class TblLocalite(models.Model):
@@ -273,3 +271,135 @@ class TblPromotion(models.Model):
     def __str__(self):
         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
 
+# class TblRendezVous(models.Model):
+#     idRendezVous = models.AutoField(primary_key=True)
+#     client = models.ForeignKey(
+#         'TblClient', on_delete=models.CASCADE, related_name='rendez_vous'
+#     )
+#     coiffeuse = models.ForeignKey(
+#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='rendez_vous'
+#     )
+#     salon = models.ForeignKey(
+#         'TblSalon', on_delete=models.CASCADE, related_name='rendez_vous'
+#     )
+#     date_heure = models.DateTimeField()  # Date et heure du RDV
+#     statut = models.CharField(
+#         max_length=20,
+#         choices=[
+#             ('en attente', 'En attente'),
+#             ('confirmé', 'Confirmé'),
+#             ('annulé', 'Annulé'),
+#             ('terminé', 'Terminé')
+#         ],
+#         default='en attente'
+#     )
+#     total_prix = models.DecimalField(
+#         max_digits=10, decimal_places=2, blank=True, null=True
+#     )  # ✅ Le total du RDV au moment de la réservation
+#
+#     def calculer_total(self):
+#         """ Calcule le prix total du RDV en fonction des services choisis """
+#         total = sum(service.prix_applique for service in self.rendez_vous_services.all())
+#         self.total_prix = total
+#         self.save()
+#
+#     def __str__(self):
+#         return f"RDV {self.idRendezVous} - {self.client.idTblUser.nom} ({self.date_heure})"
+
+class TblRendezVous(models.Model):
+    idRendezVous = models.AutoField(primary_key=True)
+    client = models.ForeignKey('TblClient', on_delete=models.CASCADE, related_name='rendez_vous')
+    coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='rendez_vous')
+    salon = models.ForeignKey('TblSalon', on_delete=models.CASCADE, related_name='rendez_vous')
+    date_heure = models.DateTimeField()
+    statut = models.CharField(
+        max_length=20,
+        choices=[('en attente', 'En attente'), ('confirmé', 'Confirmé'), ('annulé', 'Annulé'), ('terminé', 'Terminé')],
+        default='en attente'
+    )
+    total_prix = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    duree_totale = models.PositiveIntegerField(blank=True, null=True)  # ✅ Durée totale du RDV en minutes
+
+    def calculer_total(self):
+        """ Calcule le prix total et la durée totale du RDV en fonction des services choisis """
+        total_prix = 0
+        total_duree = 0
+
+        for service in self.rendez_vous_services.all():
+            total_prix += service.prix_applique
+            total_duree += service.duree_estimee  # 🔥 Ajout de la durée estimée
+
+        self.total_prix = total_prix
+        self.duree_totale = total_duree  # 🔥 Mise à jour de la durée totale
+        self.save()
+
+    def __str__(self):
+        return f"RDV {self.idRendezVous} - {self.client.idTblUser.nom} ({self.date_heure})"
+
+
+class TblRendezVousService(models.Model):
+    idRendezVousService = models.AutoField(primary_key=True)
+    rendez_vous = models.ForeignKey(
+        'TblRendezVous', on_delete=models.CASCADE, related_name='rendez_vous_services'
+    )
+    service = models.ForeignKey(
+        'TblService', on_delete=models.CASCADE, related_name='rendez_vous_services'
+    )
+    prix_applique = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )  # ✅ Prix appliqué au moment de la réservation
+    duree_estimee = models.PositiveIntegerField(blank=True, null=True)  # 🔥 Durée totale du service
+
+    class Meta:
+        unique_together = ('rendez_vous', 'service')  # ✅ Un même service ne peut pas être ajouté plusieurs fois
+
+    def save(self, *args, **kwargs):
+        """ Applique le prix promo au moment de la réservation """
+        if self.prix_applique is None:  # ✅ Si le prix n'est pas encore défini
+            # 1️⃣ Récupérer le prix standard
+            prix_service = TblServicePrix.objects.filter(service=self.service).first()
+            prix_final = prix_service.prix.prix if prix_service else Decimal("0.00")
+
+            # 2️⃣ Vérifier si une promotion est active AU MOMENT DE LA RESERVATION
+            promo = TblPromotion.objects.filter(
+                service=self.service,
+                start_date__lte=now(),  # La promo est active au moment de la réservation
+                end_date__gte=now()
+            ).first()
+
+            if promo:  # 🔥 Appliquer la réduction si une promo est trouvée
+                reduction = (promo.discount_percentage / Decimal("100")) * prix_final
+                prix_final -= reduction
+
+            self.prix_applique = prix_final  # ✅ On enregistre le prix final
+
+        # 3️⃣ Récupérer la durée estimée
+        if not self.duree_estimee:
+            temps_service = TblServiceTemps.objects.filter(service=self.service).first()
+            self.duree_estimee = temps_service.temps.minutes if temps_service else 0
+
+        super().save(*args, **kwargs)  # Appelle la sauvegarde originale
+
+    def __str__(self):
+        return f"{self.service.intitule_service} ({self.prix_applique} €) pour RDV {self.rendez_vous.idRendezVous}"
+
+class TblPaiement(models.Model):
+    idPaiement = models.AutoField(primary_key=True)
+    rendez_vous = models.OneToOneField(
+        'TblRendezVous', on_delete=models.CASCADE, related_name='paiement'
+    )
+    montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
+    date_paiement = models.DateTimeField(auto_now_add=True)
+    methode = models.CharField(
+        max_length=20,
+        choices=[('carte', 'Carte'), ('cash', 'Cash'), ('paypal', 'PayPal')],
+        default='carte'
+    )
+    statut = models.CharField(
+        max_length=20,
+        choices=[('en attente', 'En attente'), ('payé', 'Payé'), ('remboursé', 'Remboursé')],
+        default='en attente'
+    )
+
+    def __str__(self):
+        return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
