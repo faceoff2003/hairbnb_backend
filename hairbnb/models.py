@@ -403,3 +403,41 @@ class TblPaiement(models.Model):
 
     def __str__(self):
         return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
+
+# ✅ Horaire hebdomadaire du salon
+# class TblHoraireSalon(models.Model):
+#     salon = models.ForeignKey('TblSalon', on_delete=models.CASCADE, related_name='horaires')
+#     jour = models.IntegerField(choices=[(i, ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][i]) for i in range(7)])
+#     heure_debut = models.TimeField()
+#     heure_fin = models.TimeField()
+#
+#     class Meta:
+#         unique_together = ('salon', 'jour')
+#
+#     def __str__(self):
+#         return f"{self.get_jour_display()} : {self.heure_debut} - {self.heure_fin}"
+
+class TblHoraireCoiffeuse(models.Model):
+    coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='horaires')
+    jour = models.IntegerField(choices=[(i, ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][i]) for i in range(7)])
+    heure_debut = models.TimeField()
+    heure_fin = models.TimeField()
+
+    class Meta:
+        unique_together = ('coiffeuse', 'jour')
+
+    def __str__(self):
+        return f"{self.coiffeuse.idTblUser.nom} - {self.get_jour_display()} : {self.heure_debut} - {self.heure_fin}"
+
+
+# ✅ Indisponibilités exceptionnelles (vacances, congés, absences, etc.)
+class TblIndisponibilite(models.Model):
+    coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='indisponibilites')
+    date = models.DateField()
+    heure_debut = models.TimeField()
+    heure_fin = models.TimeField()
+    motif = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.date} de {self.heure_debut} à {self.heure_fin} (motif: {self.motif})"
+

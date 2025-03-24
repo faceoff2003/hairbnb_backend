@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from .views import logger
 from ..business.business_logic import MinimalCoiffeuseData
-from ..models import TblCoiffeuse, TblClient, TblUser
+from ..models import TblCoiffeuse, TblClient, TblUser, TblSalon
 from ..serializers.users_serializers import CoiffeuseSerializer, ClientSerializer, CurrentUserSerializer
 
 
@@ -141,6 +141,19 @@ def get_coiffeuses_info(request):
     except Exception as e:
         logger.error(f"❌ Erreur interne : {str(e)}", exc_info=True)
         return JsonResponse({"status": "error", "message": "Erreur interne"}, status=500)
+
+
+# @api_view(['GET'])
+# def get_salon_by_coiffeuse(request, coiffeuse_id):
+#     """
+#     Récupère le salon associé à une coiffeuse.
+#     """
+#     try:
+#         salon = TblSalon.objects.get(coiffeuse__idTblUser=coiffeuse_id)
+#         return Response({"idSalon": salon.idTblSalon})
+#     except TblSalon.DoesNotExist:
+#         return Response({"error": "Salon introuvable"}, status=404)
+
 
 
 

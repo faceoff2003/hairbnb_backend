@@ -1,7 +1,12 @@
 from django.urls import path
 
 from hairbnb.views.cart_serialisers_views import get_cart, add_to_cart, remove_from_cart, clear_cart
+from hairbnb.views.disponibilite_manager_views import get_disponibilites_par_jour, get_disponibilites_client
 from hairbnb.views.geolocation_serializers_views import coiffeuses_proches
+from hairbnb.views.horaire_serializers_views import get_horaires_coiffeuse, set_horaire_coiffeuse, \
+    delete_horaire_coiffeuse
+from hairbnb.views.indisponibilite_coiffeuse_views import get_indisponibilites, update_indisponibilite, \
+    delete_indisponibilite, add_indisponibilite
 from hairbnb.views.paiement_serializers_views import create_payment_intent
 from hairbnb.views.rdvs_serializers_views import create_rendez_vous
 from hairbnb.views.salon_services_serializers_views import get_services_by_coiffeuse, \
@@ -28,5 +33,16 @@ urlpatterns = [
     path('create_promotion/<int:service_id>/', create_promotion, name="create_promotion"),
     path('create_rendez_vous/', create_rendez_vous, name="create_rendez_vous"),
     path("create_payment/", create_payment_intent, name="create_payment"),
+    path('get_indisponibilites/<int:coiffeuse_id>/', get_indisponibilites, name='get_indisponibilites'),
+    path('add_indisponibilite/', add_indisponibilite, name='add_indisponibilite'),
+    path('update_indisponibilite/<int:indispo_id>/', update_indisponibilite, name='update_indisponibilite'),
+    path('delete_indisponibilite/<int:indispo_id>/', delete_indisponibilite, name='delete_indisponibilite'),
+    path('get_horaires_coiffeuse/<int:coiffeuse_id>/', get_horaires_coiffeuse, name='get_horaires_coiffeuse'),
+    path('set_horaire_coiffeuse/', set_horaire_coiffeuse, name='set_horaire_coiffeuse'),
+    path('delete_horaire_coiffeuse/<int:coiffeuse_id>/<int:jour>/', delete_horaire_coiffeuse,name='delete_horaire_coiffeuse'),
+    #path('get_disponibilites_client/<int:coiffeuse_id>/', get_disponibilites_client, name='get_disponibilites_client'),
+    path('get_disponibilites_client/<int:idUser>/', get_disponibilites_client, name='get_disponibilites_client'),
+
+
 
 ]

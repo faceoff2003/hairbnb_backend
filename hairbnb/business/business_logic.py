@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
+
 import stripe
 
-from hairbnb.models import TblClient, TblRendezVous, TblPaiement
+from hairbnb.models import TblClient, TblRendezVous, TblPaiement, TblHoraireCoiffeuse, TblIndisponibilite
 from hairbnb_backend import settings_test
 
 
@@ -359,21 +361,6 @@ class RendezVousData:
     def to_dict(self):
         return self.__dict__
 
-
-# class PaiementData:
-#     """Classe pour structurer un paiement."""
-#
-#     def __init__(self, paiement):
-#         self.idPaiement = paiement.idPaiement
-#         self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
-#         self.montant_paye = paiement.montant_paye
-#         self.date_paiement = paiement.date_paiement.isoformat()
-#         self.methode = paiement.methode
-#         self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
-#
-#     def to_dict(self):
-#         return self.__dict__
-
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
 
 class PaiementData:
@@ -419,6 +406,210 @@ class PaiementData:
             return {"error": "Rendez-vous non trouvé"}
         except Exception as e:
             return {"error": str(e)}
+
+class HoraireCoiffeuseData:
+    def __init__(self, horaire):
+        self.id = horaire.id
+        self.coiffeuse_id = horaire.coiffeuse.idTblUser.idTblUser
+        self.jour = horaire.jour  # int (0 = lundi)
+        self.jour_label = horaire.get_jour_display()  # ex: "Lundi"
+        self.heure_debut = horaire.heure_debut.strftime("%H:%M")
+        self.heure_fin = horaire.heure_fin.strftime("%H:%M")
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class IndisponibiliteData:
+    def __init__(self, indispo):
+        self.id = indispo.id
+        self.coiffeuse_id = indispo.coiffeuse.idTblUser.idTblUser
+
+        # ✅ Sécurise le format, que ce soit déjà une string ou non
+        self.date = indispo.date.isoformat() if hasattr(indispo.date, 'isoformat') else str(indispo.date)
+        self.heure_debut = indispo.heure_debut.strftime("%H:%M") if hasattr(indispo.heure_debut, 'strftime') else str(indispo.heure_debut)
+        self.heure_fin = indispo.heure_fin.strftime("%H:%M") if hasattr(indispo.heure_fin, 'strftime') else str(indispo.heure_fin)
+
+        self.motif = indispo.motif
+
+    def to_dict(self):
+        return self.__dict__
+
+class DisponibiliteManager:
+    def __init__(self, coiffeuse):
+        self.coiffeuse = coiffeuse
+
+    def get_jours_ouverts(self):
+        return list(
+            TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse).values_list("jour", flat=True)
+        )
+
+    def get_dispos_pour_jour(self, date, duree_minutes=30):
+        jour = date.weekday()  # 0 = lundi, ..., 6 = dimanche
+
+        # 🔒 Vérifie si un horaire existe pour ce jour
+        horaire = TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse, jour=jour).first()
+        if not horaire:
+            print("⛔️ Aucune horaire configurée ce jour-là")
+            return []  # Salon fermé ce jour-là
+
+        heure_debut = datetime.combine(date, horaire.heure_debut)
+        heure_fin = datetime.combine(date, horaire.heure_fin)
+
+        # ⏱ Génère les créneaux valides
+        slots = []
+        current = heure_debut
+
+        while current + timedelta(minutes=duree_minutes) <= heure_fin:
+            slot_debut = current
+            slot_fin = current + timedelta(minutes=duree_minutes)
+
+            # ❌ Indisponibilité exceptionnelle
+            indispo = TblIndisponibilite.objects.filter(
+                coiffeuse=self.coiffeuse,
+                date=date,
+                heure_debut__lt=slot_fin.time(),
+                heure_fin__gt=slot_debut.time()
+            ).exists()
+
+            # ❌ Créneau déjà réservé
+            rdv = TblRendezVous.objects.filter(
+                coiffeuse=self.coiffeuse,
+                date_heure__lt=slot_fin,
+                date_heure__gte=slot_debut
+            ).exists()
+
+            print("🧪 Créneaux retournés :", [(d.strftime("%H:%M"), f.strftime("%H:%M")) for d, f in slots])
+
+            if not indispo and not rdv:
+                slots.append((slot_debut, slot_fin))
+
+            current += timedelta(minutes=duree_minutes)
+
+        return slots
+
+
+
+# class DisponibiliteManager:
+#     def __init__(self, coiffeuse):
+#         self.coiffeuse = coiffeuse
+#
+#     def get_jours_ouverts(self):
+#         """Retourne la liste des jours où la coiffeuse travaille (0 = lundi, ..., 6 = dimanche)."""
+#         return list(
+#             TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse).values_list("jour", flat=True)
+#         )
+#
+#     def get_dispos_pour_jour(self, date, duree_minutes=30):
+#         """Retourne les créneaux disponibles d’un jour donné pour une durée spécifiée."""
+#         jour = date.weekday()
+#
+#         # 🔒 Récupère l'horaire de travail du jour
+#         horaire = TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse, jour=jour).first()
+#         if not horaire:
+#             return []  # Salon fermé ce jour-là
+#
+#         heure_debut = datetime.combine(date, horaire.heure_debut)
+#         heure_fin = datetime.combine(date, horaire.heure_fin)
+#
+#         # 🧱 Création des créneaux
+#         slots = []
+#         current = heure_debut
+#
+#         while current + timedelta(minutes=duree_minutes) <= heure_fin:
+#             slot_debut = current
+#             slot_fin = current + timedelta(minutes=duree_minutes)
+#
+#             # 🔴 Indisponibilités exceptionnelles
+#             if TblIndisponibilite.objects.filter(
+#                 coiffeuse=self.coiffeuse,
+#                 date=date,
+#                 heure_debut__lt=slot_fin.time(),
+#                 heure_fin__gt=slot_debut.time()
+#             ).exists():
+#                 current += timedelta(minutes=duree_minutes)
+#                 continue
+#
+#             # 🔴 Rendez-vous existants
+#             if TblRendezVous.objects.filter(
+#                 coiffeuse=self.coiffeuse,
+#                 date_heure__lt=slot_fin,
+#                 date_heure__gte=slot_debut
+#             ).exists():
+#                 current += timedelta(minutes=duree_minutes)
+#                 continue
+#
+#             # ✅ Créneau valide
+#             slots.append((slot_debut, slot_fin))
+#             current += timedelta(minutes=duree_minutes)
+#
+#         return slots
+#
+#     def get_dispos_semaine(self, start_date=None, duree_minutes=30):
+#         """
+#         Retourne un dictionnaire des créneaux disponibles pour les 7 prochains jours.
+#         - start_date : date de départ (aujourd'hui par défaut)
+#         - duree_minutes : durée des créneaux
+#         """
+#         if start_date is None:
+#             start_date = datetime.today().date()
+#
+#         semaine = {}
+#
+#         for i in range(7):
+#             jour = start_date + timedelta(days=i)
+#             dispos = self.get_dispos_pour_jour(jour, duree_minutes)
+#             if dispos:
+#                 semaine[jour.strftime("%Y-%m-%d")] = [
+#                     {
+#                         "debut": d.strftime("%H:%M"),
+#                         "fin": f.strftime("%H:%M")
+#                     } for d, f in dispos
+#                 ]
+#
+#         return semaine
+
+# class DisponibiliteManager:
+#     def __init__(self, coiffeuse):
+#         self.coiffeuse = coiffeuse
+#         self.horaires = TblHoraireCoiffeuse.objects.filter(coiffeuse=coiffeuse)
+#         self.indispos = TblIndisponibilite.objects.filter(coiffeuse=coiffeuse)
+#
+#     def get_jours_ouverts(self):
+#         return [h.jour for h in self.horaires]
+#
+#     def get_dispos_pour_jour(self, date, duree_service_minutes):
+#         jour = date.weekday()
+#         horaires = self.horaires.filter(jour=jour)
+#
+#         # Ignorer les indispos
+#         indispos_du_jour = self.indispos.filter(date=date)
+#
+#         resultats = []
+#         for h in horaires:
+#             heure_debut = datetime.combine(date, h.heure_debut)
+#             heure_fin = datetime.combine(date, h.heure_fin)
+#
+#             while (heure_debut + timedelta(minutes=duree_service_minutes)) <= heure_fin:
+#                 slot_debut = heure_debut.time()
+#                 slot_fin = (heure_debut + timedelta(minutes=duree_service_minutes)).time()
+#
+#                 # Vérifie chevauchement avec indispos
+#                 conflict = any(
+#                     i.heure_debut <= slot_debut <= i.heure_fin or
+#                     i.heure_debut <= slot_fin <= i.heure_fin
+#                     for i in indispos_du_jour
+#                 )
+#
+#                 if not conflict:
+#                     resultats.append((slot_debut, slot_fin))
+#                 heure_debut += timedelta(minutes=15)
+#
+#         return resultats
+
+
+
+
 
 
 

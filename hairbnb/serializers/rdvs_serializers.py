@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from hairbnb.models import TblRendezVous, TblRendezVousService, TblPaiement
+from hairbnb.models import TblRendezVous, TblRendezVousService, TblPaiement,TblIndisponibilite
 from hairbnb.serializers.salon_services_serializers import ServiceSerializer, SalonSerializer
 from hairbnb.serializers.users_serializers import ClientSerializer, CoiffeuseSerializer
 
@@ -28,6 +28,19 @@ class RendezVousSerializer(serializers.ModelSerializer):
             'statut', 'total_prix', 'duree_totale', 'services'
         ]
 
+# serializers.py
+
+# class HoraireSalonSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = TblHoraireSalon
+#         fields = ['jour', 'heure_debut', 'heure_fin']
+
+
+class IndisponibiliteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TblIndisponibilite
+        fields = ['id', 'date', 'heure_debut', 'heure_fin', 'motif']
+
 
 # 🔹 Serializer pour le paiement
 class PaiementSerializer(serializers.ModelSerializer):
@@ -36,3 +49,4 @@ class PaiementSerializer(serializers.ModelSerializer):
     class Meta:
         model = TblPaiement
         fields = ['idPaiement', 'rendez_vous', 'montant_paye', 'date_paiement', 'methode', 'statut']
+
