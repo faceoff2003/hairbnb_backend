@@ -39,6 +39,11 @@ ALLOWED_HOSTS = [
     'hairbnb.site',
     'www.hairbnb.site',
     'api.hairbnb.site'
+    'hairbnb-backend.onrender.com',
+    'www.hairbnb-backend.onrender.com',
+    "https://hairbnb.site",
+    "https://www.hairbnb.site",
+
 ]
 
 #STATIC_URL = '/static/'
@@ -213,7 +218,7 @@ CORS_ALLOWED_ORIGINS = [
 
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site"]
+CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site"]
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
