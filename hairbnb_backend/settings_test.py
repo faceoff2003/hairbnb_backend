@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
+import dj_database_url
+
 
 import hairbnb
 
@@ -47,10 +49,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# STATIC_URL = '/static/'
+
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # 📂 Définir où stocker les fichiers statiques collectés
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # 📂 Facultatif : Ajouter un dossier où tu mets tes fichiers statiques manuellement
 STATICFILES_DIRS = [
@@ -88,6 +93,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -128,17 +134,26 @@ WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 # ✅ Ligne pour forcer l'encodage en UTF-8
 DEFAULT_CHARSET = 'utf-8'
 
+# DATABASES = {
+#     'default': {
+#          'ENGINE': 'django.db.backends.postgresql',
+#         #'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'NAME': 'dbhairbnb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'Soul2003',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-         'ENGINE': 'django.db.backends.postgresql',
-        #'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'dbhairbnb',
-        'USER': 'postgres',
-        'PASSWORD': 'Soul2003',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
+
 
 
 

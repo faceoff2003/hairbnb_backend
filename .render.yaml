@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: hairbnb-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn hairbnb_backend.wsgi --log-file -
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        value: "ta_clé_secrète"  # à remplacer
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hairbnb-db
+          property: connectionString

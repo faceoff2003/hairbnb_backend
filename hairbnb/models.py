@@ -271,41 +271,6 @@ class TblPromotion(models.Model):
     def __str__(self):
         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
 
-# class TblRendezVous(models.Model):
-#     idRendezVous = models.AutoField(primary_key=True)
-#     client = models.ForeignKey(
-#         'TblClient', on_delete=models.CASCADE, related_name='rendez_vous'
-#     )
-#     coiffeuse = models.ForeignKey(
-#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='rendez_vous'
-#     )
-#     salon = models.ForeignKey(
-#         'TblSalon', on_delete=models.CASCADE, related_name='rendez_vous'
-#     )
-#     date_heure = models.DateTimeField()  # Date et heure du RDV
-#     statut = models.CharField(
-#         max_length=20,
-#         choices=[
-#             ('en attente', 'En attente'),
-#             ('confirmé', 'Confirmé'),
-#             ('annulé', 'Annulé'),
-#             ('terminé', 'Terminé')
-#         ],
-#         default='en attente'
-#     )
-#     total_prix = models.DecimalField(
-#         max_digits=10, decimal_places=2, blank=True, null=True
-#     )  # ✅ Le total du RDV au moment de la réservation
-#
-#     def calculer_total(self):
-#         """ Calcule le prix total du RDV en fonction des services choisis """
-#         total = sum(service.prix_applique for service in self.rendez_vous_services.all())
-#         self.total_prix = total
-#         self.save()
-#
-#     def __str__(self):
-#         return f"RDV {self.idRendezVous} - {self.client.idTblUser.nom} ({self.date_heure})"
-
 class TblRendezVous(models.Model):
     idRendezVous = models.AutoField(primary_key=True)
     client = models.ForeignKey('TblClient', on_delete=models.CASCADE, related_name='rendez_vous')
@@ -319,6 +284,8 @@ class TblRendezVous(models.Model):
     )
     total_prix = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     duree_totale = models.PositiveIntegerField(blank=True, null=True)  # ✅ Durée totale du RDV en minutes
+    est_archive = models.BooleanField(default=False)
+
 
     def calculer_total(self):
         """ Calcule le prix total et la durée totale du RDV en fonction des services choisis """
@@ -403,19 +370,6 @@ class TblPaiement(models.Model):
 
     def __str__(self):
         return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
-
-# ✅ Horaire hebdomadaire du salon
-# class TblHoraireSalon(models.Model):
-#     salon = models.ForeignKey('TblSalon', on_delete=models.CASCADE, related_name='horaires')
-#     jour = models.IntegerField(choices=[(i, ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][i]) for i in range(7)])
-#     heure_debut = models.TimeField()
-#     heure_fin = models.TimeField()
-#
-#     class Meta:
-#         unique_together = ('salon', 'jour')
-#
-#     def __str__(self):
-#         return f"{self.get_jour_display()} : {self.heure_debut} - {self.heure_fin}"
 
 class TblHoraireCoiffeuse(models.Model):
     coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='horaires')

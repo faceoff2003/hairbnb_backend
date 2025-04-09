@@ -3,11 +3,11 @@ from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from decimal import Decimal
-from hairbnb.business.business_logic import RendezVousData
 from hairbnb.models import (
     TblCoiffeuse, TblSalon, TblService, TblRendezVous, TblRendezVousService, TblUser,
-    TblServicePrix, TblServiceTemps, TblPromotion, TblIndisponibilite
+    TblServicePrix, TblServiceTemps, TblPromotion, TblIndisponibilite, TblHoraireCoiffeuse,
 )
+from hairbnb.serializers.horaire_coiffeuse_serializers import HoraireCoiffeuseSerializer
 from hairbnb.serializers.rdvs_serializers import IndisponibiliteSerializer
 
 
@@ -144,8 +144,8 @@ def get_coiffeuse_disponibilites(request, coiffeuse_id):
         indispo_serialized = IndisponibiliteSerializer(indispo, many=True).data
 
         # ✅ 3. Récupérer les horaires hebdomadaires du salon
-        horaires = TblHoraireSalon.objects.filter(salon__coiffeuse__idTblUser=coiffeuse_id)
-        horaires_serialized = HoraireSalonSerializer(horaires, many=True).data
+        horaires = TblHoraireCoiffeuse.objects.filter(salon__coiffeuse__idTblUser=coiffeuse_id)
+        horaires_serialized = HoraireCoiffeuseSerializer(horaires, many=True).data
 
         return Response({
             "rendez_vous": rdv_creneaux,
@@ -171,8 +171,8 @@ def add_indisponibilite(request):
 @api_view(['GET'])
 def get_horaires_salon(request, coiffeuse_id):
     try:
-        horaires = TblHoraireSalon.objects.filter(salon__coiffeuse__idTblUser=coiffeuse_id)
-        serializer = HoraireSalonSerializer(horaires, many=True)
+        horaires = TblHoraireCoiffeuse.objects.filter(salon__coiffeuse__idTblUser=coiffeuse_id)
+        serializer = HoraireCoiffeuseSerializer(horaires, many=True)
         return Response(serializer.data)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
@@ -198,7 +198,7 @@ def set_horaire_jour(request):
         if not all([salon_id is not None, jour is not None]):
             return Response({"error": "Champs requis : salon, jour, heure_debut, heure_fin"}, status=400)
 
-        horaire, created = TblHoraireSalon.objects.update_or_create(
+        horaire, created = TblHoraireCoiffeuse.objects.update_or_create(
             salon_id=salon_id,
             jour=jour,
             defaults={
@@ -207,7 +207,7 @@ def set_horaire_jour(request):
             }
         )
 
-        serializer = HoraireSalonSerializer(horaire)
+        serializer = HoraireCoiffeuseSerializer(horaire)
         return Response({
             "message": "Horaire ajouté ✅" if created else "Horaire mis à jour 🔁",
             "horaire": serializer.data
@@ -223,7 +223,7 @@ def delete_horaire_jour(request, salon_id, jour):
     Supprime l’horaire du salon pour un jour donné.
     """
     try:
-        horaire = TblHoraireSalon.objects.filter(salon_id=salon_id, jour=jour).first()
+        horaire = TblHoraireCoiffeuse.objects.filter(salon_id=salon_id, jour=jour).first()
         if not horaire:
             return Response({"error": "Horaire introuvable"}, status=404)
 

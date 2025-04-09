@@ -1,6 +1,8 @@
 from django.urls import path
 
 from hairbnb.views.cart_serialisers_views import get_cart, add_to_cart, remove_from_cart, clear_cart
+from hairbnb.views.coiffeuse_rdvs_by_id_view import get_rendezvous_by_coiffeuse_id, \
+    get_archived_rendezvous_by_coiffeuse_id
 from hairbnb.views.disponibilite_manager_views import get_disponibilites_par_jour, get_disponibilites_client
 from hairbnb.views.geolocation_serializers_views import coiffeuses_proches
 from hairbnb.views.horaire_serializers_views import get_horaires_coiffeuse, set_horaire_coiffeuse, \
@@ -42,7 +44,9 @@ urlpatterns = [
     path('delete_horaire_coiffeuse/<int:coiffeuse_id>/<int:jour>/', delete_horaire_coiffeuse,name='delete_horaire_coiffeuse'),
     #path('get_disponibilites_client/<int:coiffeuse_id>/', get_disponibilites_client, name='get_disponibilites_client'),
     path('get_disponibilites_client/<int:idUser>/', get_disponibilites_client, name='get_disponibilites_client'),
-
+    path('get_rendezvous_by_coiffeuse_id/<int:coiffeuse_id>/', get_rendezvous_by_coiffeuse_id, name='get_rendezvous_by_coiffeuse_id'),
+    path('get_archived_rendezvous_by_coiffeuse_id/<int:coiffeuse_id>/',
+     get_archived_rendezvous_by_coiffeuse_id,name='get_archived_rendezvous_by_coiffeuse_id'),
 
 
 ]

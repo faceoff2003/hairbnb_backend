@@ -488,128 +488,148 @@ class DisponibiliteManager:
 
         return slots
 
+class RendezVousManager:
+    def __init__(self, coiffeuse_id):
+        self.coiffeuse_id = coiffeuse_id
 
+    def get_by_statut(self, statut):
+        """
+        🔍 Renvoie un queryset filtré par statut (et non archivé).
+        """
+        queryset = TblRendezVous.objects.filter(
+            coiffeuse__idTblUser=self.coiffeuse_id,
+            est_archive=False
+        )
+        if statut:
+            queryset = queryset.filter(statut=statut)
 
-# class DisponibiliteManager:
-#     def __init__(self, coiffeuse):
-#         self.coiffeuse = coiffeuse
+        return queryset.order_by('-date_heure')
+
+    def get_by_periode(self, periode, statut=None):
+        """
+        🔄 Renvoie un queryset filtré par période + statut (et non archivé).
+        """
+        today = now().date()
+
+        if periode == "jour":
+            start = today
+            end = today + timedelta(days=1)
+        elif periode == "semaine":
+            start = today - timedelta(days=today.weekday())
+            end = start + timedelta(days=7)
+        elif periode == "mois":
+            start = today.replace(day=1)
+            end = (start + timedelta(days=32)).replace(day=1)
+        elif periode == "annee":
+            start = today.replace(month=1, day=1)
+            end = today.replace(month=12, day=31)
+        else:
+            return TblRendezVous.objects.none()  # aucun résultat
+
+        queryset = TblRendezVous.objects.filter(
+            coiffeuse__idTblUser=self.coiffeuse_id,
+            date_heure__date__range=(start, end),
+            est_archive=False
+        )
+
+        if statut:
+            queryset = queryset.filter(statut=statut)
+
+        return queryset.order_by('-date_heure')
+
+# class RendezVousManager:
+#     def __init__(self, coiffeuse_id):
+#         self.coiffeuse_id = coiffeuse_id
 #
-#     def get_jours_ouverts(self):
-#         """Retourne la liste des jours où la coiffeuse travaille (0 = lundi, ..., 6 = dimanche)."""
-#         return list(
-#             TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse).values_list("jour", flat=True)
+#     def get_by_statut(self, statut):
+#         """
+#         🔍 Filtre les rendez-vous selon leur statut.
+#         Ne renvoie que les rendez-vous non archivés.
+#         """
+#         queryset = TblRendezVous.objects.filter(
+#             coiffeuse__idTblUser=self.coiffeuse_id,
+#             est_archive=False  # ✅ on filtre ici
+#         )
+#         if statut:
+#             queryset = queryset.filter(statut=statut)
+#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
+#
+#     def get_by_periode(self, periode, statut=None):
+#         """
+#         🔄 Filtre les rendez-vous par période : jour, semaine, mois, année.
+#         Ne renvoie que les rendez-vous non archivés.
+#         """
+#         today = now().date()
+#
+#         if periode == "jour":
+#             start = today
+#             end = today + timedelta(days=1)
+#         elif periode == "semaine":
+#             start = today - timedelta(days=today.weekday())
+#             end = start + timedelta(days=7)
+#         elif periode == "mois":
+#             start = today.replace(day=1)
+#             end = (start + timedelta(days=32)).replace(day=1)
+#         elif periode == "annee":
+#             start = today.replace(month=1, day=1)
+#             end = today.replace(month=12, day=31)
+#         else:
+#             return []  # ⚠️ période non reconnue
+#
+#         queryset = TblRendezVous.objects.filter(
+#             coiffeuse__idTblUser=self.coiffeuse_id,
+#             date_heure__range=(start, end),
+#             est_archive=False  # ✅ ici aussi
 #         )
 #
-#     def get_dispos_pour_jour(self, date, duree_minutes=30):
-#         """Retourne les créneaux disponibles d’un jour donné pour une durée spécifiée."""
-#         jour = date.weekday()
+#         if statut:
+#             queryset = queryset.filter(statut=statut)
 #
-#         # 🔒 Récupère l'horaire de travail du jour
-#         horaire = TblHoraireCoiffeuse.objects.filter(coiffeuse=self.coiffeuse, jour=jour).first()
-#         if not horaire:
-#             return []  # Salon fermé ce jour-là
+#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
+
+
+
+# class RendezVousManager:
+#     def __init__(self, coiffeuse_id):
+#         self.coiffeuse_id = coiffeuse_id
 #
-#         heure_debut = datetime.combine(date, horaire.heure_debut)
-#         heure_fin = datetime.combine(date, horaire.heure_fin)
-#
-#         # 🧱 Création des créneaux
-#         slots = []
-#         current = heure_debut
-#
-#         while current + timedelta(minutes=duree_minutes) <= heure_fin:
-#             slot_debut = current
-#             slot_fin = current + timedelta(minutes=duree_minutes)
-#
-#             # 🔴 Indisponibilités exceptionnelles
-#             if TblIndisponibilite.objects.filter(
-#                 coiffeuse=self.coiffeuse,
-#                 date=date,
-#                 heure_debut__lt=slot_fin.time(),
-#                 heure_fin__gt=slot_debut.time()
-#             ).exists():
-#                 current += timedelta(minutes=duree_minutes)
-#                 continue
-#
-#             # 🔴 Rendez-vous existants
-#             if TblRendezVous.objects.filter(
-#                 coiffeuse=self.coiffeuse,
-#                 date_heure__lt=slot_fin,
-#                 date_heure__gte=slot_debut
-#             ).exists():
-#                 current += timedelta(minutes=duree_minutes)
-#                 continue
-#
-#             # ✅ Créneau valide
-#             slots.append((slot_debut, slot_fin))
-#             current += timedelta(minutes=duree_minutes)
-#
-#         return slots
-#
-#     def get_dispos_semaine(self, start_date=None, duree_minutes=30):
+#     def get_by_statut(self, statut):
 #         """
-#         Retourne un dictionnaire des créneaux disponibles pour les 7 prochains jours.
-#         - start_date : date de départ (aujourd'hui par défaut)
-#         - duree_minutes : durée des créneaux
+#         🔍 Filtre les rendez-vous selon leur statut.
 #         """
-#         if start_date is None:
-#             start_date = datetime.today().date()
+#         queryset = TblRendezVous.objects.filter(coiffeuse__idTblUser=self.coiffeuse_id)
+#         if statut:
+#             queryset = queryset.filter(statut=statut)
+#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
 #
-#         semaine = {}
+#     def get_by_periode(self, periode, statut=None):
+#         """
+#         🔄 Filtre les rendez-vous par période : jour, semaine, mois, année.
+#         Optionnellement filtré par statut.
+#         """
+#         today = now().date()
 #
-#         for i in range(7):
-#             jour = start_date + timedelta(days=i)
-#             dispos = self.get_dispos_pour_jour(jour, duree_minutes)
-#             if dispos:
-#                 semaine[jour.strftime("%Y-%m-%d")] = [
-#                     {
-#                         "debut": d.strftime("%H:%M"),
-#                         "fin": f.strftime("%H:%M")
-#                     } for d, f in dispos
-#                 ]
+#         if periode == "jour":
+#             start = today
+#             end = today + timedelta(days=1)
+#         elif periode == "semaine":
+#             start = today - timedelta(days=today.weekday())
+#             end = start + timedelta(days=7)
+#         elif periode == "mois":
+#             start = today.replace(day=1)
+#             end = (start + timedelta(days=32)).replace(day=1)
+#         elif periode == "annee":
+#             start = today.replace(month=1, day=1)
+#             end = today.replace(month=12, day=31)
+#         else:
+#             return []  # ⚠️ période non reconnue
 #
-#         return semaine
-
-# class DisponibiliteManager:
-#     def __init__(self, coiffeuse):
-#         self.coiffeuse = coiffeuse
-#         self.horaires = TblHoraireCoiffeuse.objects.filter(coiffeuse=coiffeuse)
-#         self.indispos = TblIndisponibilite.objects.filter(coiffeuse=coiffeuse)
+#         queryset = TblRendezVous.objects.filter(
+#             coiffeuse__idTblUser=self.coiffeuse_id,
+#             date_heure__range=(start, end)
+#         )
 #
-#     def get_jours_ouverts(self):
-#         return [h.jour for h in self.horaires]
+#         if statut:
+#             queryset = queryset.filter(statut=statut)
 #
-#     def get_dispos_pour_jour(self, date, duree_service_minutes):
-#         jour = date.weekday()
-#         horaires = self.horaires.filter(jour=jour)
-#
-#         # Ignorer les indispos
-#         indispos_du_jour = self.indispos.filter(date=date)
-#
-#         resultats = []
-#         for h in horaires:
-#             heure_debut = datetime.combine(date, h.heure_debut)
-#             heure_fin = datetime.combine(date, h.heure_fin)
-#
-#             while (heure_debut + timedelta(minutes=duree_service_minutes)) <= heure_fin:
-#                 slot_debut = heure_debut.time()
-#                 slot_fin = (heure_debut + timedelta(minutes=duree_service_minutes)).time()
-#
-#                 # Vérifie chevauchement avec indispos
-#                 conflict = any(
-#                     i.heure_debut <= slot_debut <= i.heure_fin or
-#                     i.heure_debut <= slot_fin <= i.heure_fin
-#                     for i in indispos_du_jour
-#                 )
-#
-#                 if not conflict:
-#                     resultats.append((slot_debut, slot_fin))
-#                 heure_debut += timedelta(minutes=15)
-#
-#         return resultats
-
-
-
-
-
-
-
+#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
