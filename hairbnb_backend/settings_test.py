@@ -15,6 +15,7 @@ import dj_database_url
 
 
 import hairbnb
+import hairbnb_backend
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,20 +32,21 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 
 #ALLOWED_HOSTS = ['192.168.0.202', '127.0.0.1', 'localhost']
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '192.168.0.248',  # Ton IP locale
-    '91.86.52.162',    # Ton IP publique
-    'hairbnb.site',
-    'www.hairbnb.site',
-    'api.hairbnb.site'
-    'hairbnb-backend.onrender.com',
-    'www.hairbnb-backend.onrender.com',
-    "https://hairbnb.site",
-    "https://www.hairbnb.site",
+# ALLOWED_HOSTS = [
+#     '127.0.0.1',
+#     'localhost',
+#     '192.168.0.248',  # Ton IP locale
+#     '192.168.0.248',
+#     '91.86.52.162',    # Ton IP publique
+#     'hairbnb.site',
+#     'www.hairbnb.site',
+#     'api.hairbnb.site',
+#     "https://hairbnb.site",
+#     "https://www.hairbnb.site",
+#
+# ]
 
-]
+ALLOWED_HOSTS = ['hairbnb.site', 'www.hairbnb.site']
 
 #STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
@@ -98,7 +100,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'hairbnb_backend.middlewares.BlockWordPressScannersMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -139,25 +141,25 @@ WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 # ✅ Ligne pour forcer l'encodage en UTF-8
 DEFAULT_CHARSET = 'utf-8'
 
-# DATABASES = {
-#     'default': {
-#          'ENGINE': 'django.db.backends.postgresql',
-#         #'ENGINE': 'django.contrib.gis.db.backends.postgis',
-#         'NAME': 'dbhairbnb',
-#         'USER': 'postgres',
-#         'PASSWORD': 'Soul2003',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+        #'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'dbhairbnb',
+        'USER': 'postgres',
+        'PASSWORD': 'Soul2003',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get("DATABASE_URL"),
+#         conn_max_age=600,
+#         ssl_require=True
+#     )
+# }
 
 
 
@@ -206,14 +208,14 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:50734",
+    # "http://localhost:3000",
+    # "http://localhost:50734",
     "http://127.0.0.1:8080",
     "http://hairbnb.site",
     "http://www.hairbnb.site",
     "http://api.hairbnb.site",
-    "http://91.86.52.162:8080",
-    "http://91.86.52.162"
+    "http://91.86.53.160:8080",
+    "http://91.86.53.160"
 ]
 
 
@@ -222,6 +224,9 @@ CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site"]
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
 
 
 # CSRF_TRUSTED_ORIGINS = ["https://hairbnb.site"]

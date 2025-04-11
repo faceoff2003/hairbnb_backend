@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from hairbnb.models import TblService, TblTemps, TblPrix, TblSalonService, TblSalon
+from hairbnb.models import TblService, TblTemps, TblPrix, TblSalonService, TblSalon, TblSalonImage, TblAvis
 
 
 class TempsSerializer(serializers.ModelSerializer):
@@ -31,3 +31,20 @@ class SalonSerializer(serializers.ModelSerializer):
         fields = ['idTblSalon', 'coiffeuse', 'services']
 
 
+class TblSalonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TblSalon
+        fields = ['idTblSalon', 'coiffeuse', 'nom_salon', 'slogan', 'logo_salon']
+
+
+class TblSalonImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TblSalonImage
+        fields = ['id', 'salon', 'image']
+
+
+class TblAvisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TblAvis
+        fields = ['id', 'salon', 'client', 'note', 'commentaire', 'date']
+        read_only_fields = ['date']

@@ -1,7 +1,9 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.timezone import now
 from hairbnb.services.upload_services import salon_image_upload_to
 from decimal import Decimal
+from hairbnb.services.validators import validate_max_images
 
 # Table pour gérer les localités
 class TblLocalite(models.Model):
@@ -139,23 +141,79 @@ class TblService(models.Model):
 
 
 # Table pour gérer les salons
+#--------------------La zone de salon-------------------------------
+
 class TblSalon(models.Model):
     idTblSalon = models.AutoField(primary_key=True)
+
     coiffeuse = models.OneToOneField(
-        'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
+        'TblCoiffeuse',
+        on_delete=models.CASCADE,
+        related_name='salon'
     )
-    slogan = models.CharField(max_length=255, blank=True, null=True)
+
+    nom_salon = models.CharField(max_length=30)  # ✅ nouveau champ obligatoire
+
+    slogan = models.CharField(max_length=75)
+
     logo_salon = models.ImageField(
         upload_to='photos/logos/',
-        null=True,
-        blank=True,
-        default='photos/defaults/logo_default.png'  # Logo par défaut
+        default='photos/defaults/logo_default.png'
     )
-    services = models.ManyToManyField(
-        TblService, related_name='salons', through='TblSalonService'
-    )
+
     def __str__(self):
-        return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+        return f"{self.nom_salon} - {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+
+#------------------------------------TblSalonImage---------------------------------------
+
+class TblSalonImage(models.Model):
+    salon = models.ForeignKey(
+        TblSalon,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+    image = models.ImageField(
+        upload_to='photos/salon/',
+        validators=[validate_max_images]
+    )
+
+    def __str__(self):
+        return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - ID {self.id}"
+
+    def save(self, *args, **kwargs):
+        validate_max_images(self.salon)
+        super().save(*args, **kwargs)
+
+#------------------------------------TblAvis---------------------------------------
+
+class TblAvis(models.Model):
+    salon = models.ForeignKey(TblSalon, on_delete=models.CASCADE, related_name='avis')
+    client = models.ForeignKey('TblClient', on_delete=models.SET_NULL, null=True)
+    note = models.IntegerField(choices=[(i, f"{i}/5") for i in range(1, 6)])
+    commentaire = models.TextField()  # 🔥 Obligatoire : pas de blank=True
+
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon}"
+
+# class TblSalon(models.Model):
+#     idTblSalon = models.AutoField(primary_key=True)
+#     coiffeuse = models.OneToOneField(
+#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
+#     )
+#     slogan = models.CharField(max_length=255, blank=True, null=True)
+#     logo_salon = models.ImageField(
+#         upload_to='photos/logos/',
+#         null=True,
+#         blank=True,
+#         default='photos/defaults/logo_default.png'  # Logo par défaut
+#     )
+#     services = models.ManyToManyField(
+#         TblService, related_name='salons', through='TblSalonService'
+#     )
+#     def __str__(self):
+#         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
 
 # Table de jonction pour relier les salons et les services
@@ -172,17 +230,17 @@ class TblSalonService(models.Model):
 
 
 # Table pour gérer les images de salon
-class TblImageSalon(models.Model):
-    idTblImageSalon = models.AutoField(primary_key=True)
-    urlImages = models.ImageField(upload_to=salon_image_upload_to)  # Appel de la méthode externe
-    salon = models.ForeignKey(
-        TblSalon,
-        on_delete=models.CASCADE,
-        related_name='images'
-    )
-
-    def __str__(self):
-        return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - {self.urlImages.name}"
+# class TblImageSalon(models.Model):
+#     idTblImageSalon = models.AutoField(primary_key=True)
+#     urlImages = models.ImageField(upload_to=salon_image_upload_to)  # Appel de la méthode externe
+#     salon = models.ForeignKey(
+#         TblSalon,
+#         on_delete=models.CASCADE,
+#         related_name='images'
+#     )
+#
+#     def __str__(self):
+#         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - {self.urlImages.name}"
 
     # Table de jonction pour relier les services et les temps
 class TblServiceTemps(models.Model):
