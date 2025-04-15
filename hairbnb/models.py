@@ -1,7 +1,6 @@
-from django.core.exceptions import ValidationError
+from django.core.validators import MaxLengthValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.timezone import now
-from hairbnb.services.upload_services import salon_image_upload_to
 from decimal import Decimal
 from hairbnb.services.validators import validate_max_images
 
@@ -116,10 +115,23 @@ class TblTemps(models.Model):
 # Table pour gérer les prix
 class TblPrix(models.Model):
     idTblPrix = models.AutoField(primary_key=True)
-    prix = models.DecimalField(max_digits=10, decimal_places=2, unique=True)  # ✅ UNIQUE
+    prix = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        unique=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1000)]
+    )
 
     def __str__(self):
         return f"{self.prix} €"
+
+
+# class TblPrix(models.Model):
+#     idTblPrix = models.AutoField(primary_key=True)
+#     prix = models.DecimalField(max_digits=10, decimal_places=2, unique=True)  # ✅ UNIQUE
+#
+#     def __str__(self):
+#         return f"{self.prix} €"
 
 
 # class TblPrix(models.Model):
@@ -133,8 +145,9 @@ class TblPrix(models.Model):
 # Table pour gérer les services
 class TblService(models.Model):
     idTblService = models.AutoField(primary_key=True)
-    intitule_service = models.CharField(max_length=255)
-    description = models.TextField()
+    intitule_service = models.CharField(max_length=100)
+    description = models.TextField(validators=[MaxLengthValidator(600)])
+    # description = models.TextField()
 
     def __str__(self):
         return f"{self.intitule_service} €"
@@ -143,26 +156,48 @@ class TblService(models.Model):
 # Table pour gérer les salons
 #--------------------La zone de salon-------------------------------
 
+# class TblSalon(models.Model):
+#     idTblSalon = models.AutoField(primary_key=True)
+#
+#     coiffeuse = models.OneToOneField(
+#         'TblCoiffeuse',
+#         on_delete=models.CASCADE,
+#         related_name='salon'
+#     )
+#
+#     nom_salon = models.CharField(max_length=30)  # ✅ nouveau champ obligatoire
+#
+#     slogan = models.CharField(max_length=75)
+#
+#     logo_salon = models.ImageField(
+#         upload_to='photos/logos/',
+#         default='photos/defaults/logo_default.png'
+#     )
+#
+#     def __str__(self):
+#         return f"{self.nom_salon} - {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+
+
 class TblSalon(models.Model):
     idTblSalon = models.AutoField(primary_key=True)
-
     coiffeuse = models.OneToOneField(
-        'TblCoiffeuse',
-        on_delete=models.CASCADE,
-        related_name='salon'
+        'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
     )
 
-    nom_salon = models.CharField(max_length=30)  # ✅ nouveau champ obligatoire
+    nom_salon = models.CharField(max_length=30)
 
-    slogan = models.CharField(max_length=75)
-
+    slogan = models.CharField(max_length=255, blank=True, null=True)
     logo_salon = models.ImageField(
         upload_to='photos/logos/',
-        default='photos/defaults/logo_default.png'
+        null=True,
+        blank=True,
+        default='photos/defaults/logo_default.png'  # Logo par défaut
     )
-
+    services = models.ManyToManyField(
+        TblService, related_name='salons', through='TblSalonService'
+    )
     def __str__(self):
-        return f"{self.nom_salon} - {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+        return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
 #------------------------------------TblSalonImage---------------------------------------
 
@@ -174,7 +209,6 @@ class TblSalonImage(models.Model):
     )
     image = models.ImageField(
         upload_to='photos/salon/',
-        validators=[validate_max_images]
     )
 
     def __str__(self):
@@ -197,23 +231,6 @@ class TblAvis(models.Model):
     def __str__(self):
         return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon}"
 
-# class TblSalon(models.Model):
-#     idTblSalon = models.AutoField(primary_key=True)
-#     coiffeuse = models.OneToOneField(
-#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
-#     )
-#     slogan = models.CharField(max_length=255, blank=True, null=True)
-#     logo_salon = models.ImageField(
-#         upload_to='photos/logos/',
-#         null=True,
-#         blank=True,
-#         default='photos/defaults/logo_default.png'  # Logo par défaut
-#     )
-#     services = models.ManyToManyField(
-#         TblService, related_name='salons', through='TblSalonService'
-#     )
-#     def __str__(self):
-#         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
 
 # Table de jonction pour relier les salons et les services
@@ -258,7 +275,26 @@ class TblServiceTemps(models.Model):
     def __str__(self):
         return f"Temps de {self.temps.minutes} minutes pour le service '{self.service.intitule_service}'"
 
-    # Table de jonction pour relier les services et les prix
+
+from django.core.validators import MaxValueValidator, MinValueValidator
+
+# class TblServicePrix(models.Model):
+#     idServicePrix = models.AutoField(primary_key=True)
+#     service = models.ForeignKey(
+#         TblService, on_delete=models.CASCADE, related_name="service_prix"
+#     )
+#     prix = models.DecimalField(
+#         max_digits=6,
+#         decimal_places=2,
+#         validators=[MinValueValidator(0), MaxValueValidator(1000)]
+#     )
+#
+#     class Meta:
+#         unique_together = ('service',)  # Chaque service doit avoir une seule ligne dans TblServicePrix
+#
+#     def __str__(self):
+#         return f"Prix de {self.prix} € pour le service '{self.service.intitule_service}'"
+
 class TblServicePrix(models.Model):
     idServicePrix = models.AutoField(primary_key=True)
     service = models.ForeignKey(
@@ -323,8 +359,19 @@ class TblPromotion(models.Model):
     def is_active(self):
         """
         Vérifie si la promotion est active en fonction de la date actuelle.
+        Utilise la date uniquement, sans tenir compte des heures.
         """
-        return self.start_date <= now() <= self.end_date
+        current_date = now().date()
+        start_date = self.start_date.date()
+        end_date = self.end_date.date()
+
+        print(f"DEBUG is_active: today={current_date}, start={start_date}, end={end_date}")
+        return start_date <= current_date <= end_date
+    # def is_active(self):
+    #     """
+    #     Vérifie si la promotion est active en fonction de la date actuelle.
+    #     """
+    #     return self.start_date <= now() <= self.end_date
 
     def __str__(self):
         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"

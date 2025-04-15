@@ -11,7 +11,8 @@ from hairbnb.views.indisponibilite_coiffeuse_views import get_indisponibilites, 
     delete_indisponibilite, add_indisponibilite
 from hairbnb.views.paiement_serializers_views import create_payment_intent
 from hairbnb.views.rdvs_serializers_views import create_rendez_vous
-from hairbnb.views.salon_serializers_views import ajout_salon_serializer_view, get_salon_by_coiffeuse
+from hairbnb.views.salon_serializers_views import ajout_salon_serializer_view, get_salon_by_coiffeuse, \
+    add_images_to_salon
 from hairbnb.views.salon_services_serializers_views import get_services_by_coiffeuse, \
     update_service, delete_service, add_service_to_coiffeuse, create_promotion
 from hairbnb.views.users_serializers_views import get_coiffeuse_by_uuid, get_client_by_uuid, update_coiffeuse, \
@@ -33,7 +34,7 @@ urlpatterns = [
     path('add_to_cart/', add_to_cart, name="add_to_cart"),
     path('remove_from_cart/', remove_from_cart, name="remove_from_cart"),
     path('clear_cart/', clear_cart, name="clear_cart"),
-    path('create_promotion/<int:service_id>/', create_promotion, name="create_promotion"),
+    # path('create_promotion/<int:service_id>/', create_promotion, name="create_promotion"),
     path('create_rendez_vous/', create_rendez_vous, name="create_rendez_vous"),
     path("create_payment/", create_payment_intent, name="create_payment"),
     path('get_indisponibilites/<int:coiffeuse_id>/', get_indisponibilites, name='get_indisponibilites'),
@@ -49,6 +50,5 @@ urlpatterns = [
      get_archived_rendezvous_by_coiffeuse_id,name='get_archived_rendezvous_by_coiffeuse_id'),
     path('ajout_salon_serializer_view/', ajout_salon_serializer_view, name='ajout_salon'),
     path('get_salon_by_coiffeuse/<int:coiffeuse_id>/', get_salon_by_coiffeuse, name='get_salon_by_coiffeuse'),
-
-
+    path('add_images_to_salon/', add_images_to_salon, name='add_images_to_salon'),
 ]

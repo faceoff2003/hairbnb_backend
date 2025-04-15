@@ -46,7 +46,7 @@ class CoiffeuseSerializer(serializers.ModelSerializer):
     class Meta:
         model = TblCoiffeuse
         fields = [
-            'idTblUser', 'denomination_sociale', 'tva', 'position', 'user'
+            'id', 'idTblUser', 'denomination_sociale', 'tva', 'position', 'user'
         ]
 
 

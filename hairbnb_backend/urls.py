@@ -25,8 +25,8 @@ from hairbnb.views.users_serializers_views import get_coiffeuse_by_uuid
 from hairbnb_backend import settings
 
 urlpatterns = [
-    path('', home, name='home'),  # Route pour la page d'accueil
-    path('admin/', admin.site.urls),
+    #path('', home, name='home'),  # Route pour la page d'accueil
+    path('ghost/', admin.site.urls),
     path('api/create-profile/', create_user_profile, name='create_user_profile'),
     path('api/check-user-profile/', views.views.check_user_profile, name='check_user_profile'),
     path('api/create_salon/', views.views.create_salon, name='create_salon'),
@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/get_id_and_type_from_uuid/<str:uuid>/', views.views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
     path('api/add_service_to_salon/', add_service_to_salon, name='add_service_to_salon'),
     path('api/', include('hairbnb.urls.serializers_urls')),  # Inclure les routes de serializers_urls.py
+    path('api/', include('hairbnb.urls.promotion_urls')),  # Inclure les routes de promotion_urls.py
 ]
 
 # Ajoutez ceci pour gérer les fichiers médias (Seulement en mode DEBUG)

@@ -5,9 +5,10 @@ import stripe
 from hairbnb.models import TblClient, TblRendezVous, TblPaiement, TblHoraireCoiffeuse, TblIndisponibilite
 from hairbnb_backend import settings_test
 
-
+# class CoiffeuseData:
 class CoiffeuseData:
     def __init__(self, coiffeuse):
+        self.idTblCoiffeuse = coiffeuse.pk  # 🔥 Clé primaire
         self.idTblUser = coiffeuse.idTblUser.idTblUser
         self.denomination_sociale = coiffeuse.denomination_sociale
         self.tva = coiffeuse.tva
@@ -43,6 +44,43 @@ class CoiffeuseData:
     def to_dict(self):
         return self.__dict__
 
+# class CoiffeuseData:
+#     def __init__(self, coiffeuse):
+#         self.idTblUser = coiffeuse.idTblUser.idTblUser
+#         self.denomination_sociale = coiffeuse.denomination_sociale
+#         self.tva = coiffeuse.tva
+#         self.position = coiffeuse.position
+#
+#         # Infos utilisateur
+#         user = coiffeuse.idTblUser
+#         self.uuid = user.uuid
+#         self.nom = user.nom
+#         self.prenom = user.prenom
+#         self.email = user.email
+#         self.numero_telephone = user.numero_telephone
+#         self.date_naissance = user.date_naissance
+#         self.sexe = user.sexe
+#         self.is_active = user.is_active
+#         self.photo_profil = user.photo_profil.url if user.photo_profil else None
+#
+#         # Adresse
+#         adresse = user.adresse
+#         if adresse:
+#             self.numero = adresse.numero
+#             self.boite_postale = adresse.boite_postale
+#             self.nom_rue = adresse.rue.nom_rue
+#             self.commune = adresse.rue.localite.commune
+#             self.code_postal = adresse.rue.localite.code_postal
+#         else:
+#             self.numero = None
+#             self.boite_postale = None
+#             self.nom_rue = None
+#             self.commune = None
+#             self.code_postal = None
+#
+#     def to_dict(self):
+#         return self.__dict__
+
 # class ServiceData:
 #     def __init__(self, service):
 #         self.idTblService = service.idTblService
@@ -61,10 +99,15 @@ class CoiffeuseData:
 #         return self.__dict__
 
 class SalonData:
-    def __init__(self, salon):
+    def __init__(self, salon,filtered_services=None):
         self.idTblSalon = salon.idTblSalon
         self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
-        self.services = [ServiceData(service.service).to_dict() for service in salon.salon_service.all()]
+
+        # ✅ Soit on utilise les services filtrés (pagination), soit tous
+        services_source = filtered_services if filtered_services is not None else salon.salon_service.all().order_by(
+            'service__intitule_service')
+
+        self.services = [ServiceData(service.service).to_dict() for service in services_source]
 
     def to_dict(self):
         return self.__dict__
@@ -142,7 +185,7 @@ class CurrentUserData:
         # Vérifier si c'est une coiffeuse ou un client et récupérer les données associées
         if user.type == "coiffeuse":
             try:
-                coiffeuse = TblCoiffeuse.objects.get(idTblUser=user)
+                coiffeuse = TblCoiffeuse.objects.get(idTblUsertbl=user)
                 self.extra_data = CoiffeuseData(coiffeuse).to_dict()  # Ajoute les infos de la coiffeuse
             except TblCoiffeuse.DoesNotExist:
                 self.extra_data = None
