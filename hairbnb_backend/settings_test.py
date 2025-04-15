@@ -110,6 +110,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.country_restriction.CountryRestrictionMiddleware',
 ]
 
 ROOT_URLCONF = 'hairbnb_backend.urls'
@@ -230,7 +231,9 @@ SECURE_BROWSER_XSS_FILTER = True
 
 
 # CSRF_TRUSTED_ORIGINS = ["https://hairbnb.site"]
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SECURE_SSL_REDIRECT = True
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
@@ -250,3 +253,29 @@ CORS_ALLOW_HEADERS = [  # Autoriser les en-têtes courants
     "Content-Type",
     "X-CSRFToken",
 ]
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'geoip': {
+            'format': '[%(asctime)s] [%(levelname)s] [%(ip)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'geoip_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'geoip_blocked.log'),
+            'formatter': 'geoip',
+        },
+    },
+    'loggers': {
+        'geoip_blocker': {
+            'handlers': ['geoip_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
