@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.timezone import now
 from decimal import Decimal
 from hairbnb.services.validators import validate_max_images
+from django.contrib.auth.models import User
 
 # Table pour gérer les localités
 class TblLocalite(models.Model):
@@ -183,10 +184,9 @@ class TblSalon(models.Model):
     coiffeuse = models.OneToOneField(
         'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
     )
-
     nom_salon = models.CharField(max_length=30)
-
-    slogan = models.CharField(max_length=255, blank=True, null=True)
+    slogan = models.CharField(max_length=40, blank=True, null=True)
+    a_propos = models.TextField(max_length=700,blank=True, null=True)  # Nouveau champ pour la description détaillée
     logo_salon = models.ImageField(
         upload_to='photos/logos/',
         null=True,
@@ -196,12 +196,35 @@ class TblSalon(models.Model):
     services = models.ManyToManyField(
         TblService, related_name='salons', through='TblSalonService'
     )
+
     def __str__(self):
         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+
+# class TblSalon(models.Model):
+#     idTblSalon = models.AutoField(primary_key=True)
+#     coiffeuse = models.OneToOneField(
+#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
+#     )
+#
+#     nom_salon = models.CharField(max_length=30)
+#
+#     slogan = models.CharField(max_length=255, blank=True, null=True)
+#     logo_salon = models.ImageField(
+#         upload_to='photos/logos/',
+#         null=True,
+#         blank=True,
+#         default='photos/defaults/logo_default.png'  # Logo par défaut
+#     )
+#     services = models.ManyToManyField(
+#         TblService, related_name='salons', through='TblSalonService'
+#     )
+#     def __str__(self):
+#         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
 #------------------------------------TblSalonImage---------------------------------------
 
 class TblSalonImage(models.Model):
+
     salon = models.ForeignKey(
         TblSalon,
         on_delete=models.CASCADE,
@@ -214,9 +237,17 @@ class TblSalonImage(models.Model):
     def __str__(self):
         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - ID {self.id}"
 
+    # def save(self, *args, **kwargs):
+    #     validate_max_images(self.salon)
+    #     super().save(*args, **kwargs)
     def save(self, *args, **kwargs):
-        validate_max_images(self.salon)
+        try:
+            validate_max_images(self.salon)
+        except Exception as e:
+            print("Erreur dans validate_max_images:", e)
+            raise  # Pour laisser l'exception remonter si besoin
         super().save(*args, **kwargs)
+
 
 #------------------------------------TblAvis---------------------------------------
 
@@ -499,4 +530,27 @@ class TblIndisponibilite(models.Model):
 
     def __str__(self):
         return f"{self.date} de {self.heure_debut} à {self.heure_fin} (motif: {self.motif})"
+
+class TblFavorite(models.Model):
+    idTblFavorite = models.AutoField(primary_key=True)
+    user = models.ForeignKey(
+        TblUser,
+        on_delete=models.CASCADE,
+        related_name='favorites'
+    )
+    salon = models.ForeignKey(
+        TblSalon,
+        on_delete=models.CASCADE,
+        related_name='favorited_by'
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'salon')  # Un même utilisateur ne peut pas aimer deux fois le même salon
+        verbose_name = "Favori"
+        verbose_name_plural = "Favoris"
+
+    def __str__(self):
+        return f"{self.user.nom} ♥ {self.salon.nom_salon if hasattr(self.salon, 'nom_salon') else self.salon.idTblSalon}"
+
 

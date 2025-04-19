@@ -11,11 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
-import dj_database_url
 
-
-import hairbnb
-import hairbnb_backend
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -97,6 +93,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'hairbnb.apps.HairbnbConfig',
     'corsheaders',
+
 ]
 
 MIDDLEWARE = [
@@ -112,6 +109,23 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.country_restriction.CountryRestrictionMiddleware',
 ]
+
+# Configuration de Axes (protection contre les attaques par force brute)
+
+# Nombre d'échecs consécutifs avant de bloquer l'accès (par IP)
+AXES_FAILURE_LIMIT = 5
+
+# Temps d'attente avant de débloquer l'accès (en heures)
+AXES_COOLOFF_TIME = 1
+
+# Fonction utilisée pour stocker les échecs de connexion
+# Ici, on utilise la base de données pour stocker les échecs
+AXES_LOCKOUT_CALLABLE = 'axes.handlers.database.AxesDatabaseHandler'
+
+# Si l'utilisateur se connecte correctement après un blocage, remettre à zéro le compteur d'échecs
+AXES_RESET_ON_SUCCESS = True
+
+
 
 ROOT_URLCONF = 'hairbnb_backend.urls'
 

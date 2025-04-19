@@ -264,53 +264,53 @@ def get_salon_by_coiffeuse(request, coiffeuse_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-@api_view(['POST'])
-@parser_classes([MultiPartParser, FormParser])
-def add_images_to_salon(request):
-    print("✅ La vue a bien été appelée !")
-    salon_id = request.data.get('salon')
-    images = request.FILES.getlist('image')
-
-    print("🧪 Reçues images:", [img.name for img in images])
-
-    if not salon_id or not images:
-        return Response({"error": "Champs requis : salon, image(s)"}, status=status.HTTP_400_BAD_REQUEST)
-
-    if len(images) < 3:
-        return Response({"error": "Veuillez télécharger au moins 3 images."}, status=status.HTTP_400_BAD_REQUEST)
-
-    if len(images) > 12:
-        return Response({"error": "Vous ne pouvez pas télécharger plus de 12 images."}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        salon = TblSalon.objects.get(idTblSalon=salon_id)
-    except TblSalon.DoesNotExist:
-        return Response({"error": "Salon introuvable."}, status=status.HTTP_404_NOT_FOUND)
-
-    image_ids = []
-    for img in images:
-        print(f"-> Image: {img.name}, Taille: {img.size}")
-
-        if img.size > 6 * 1024 * 1024:
-            return Response(
-                {"error": f"L'image '{img.name}' dépasse 6MB."},
-                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
-            )
-
-        # ✅ ICI : c'est bien le champ `salon` (ID) et `image` (fichier)
-        serializer = TblSalonImageSerializer(data={
-            "salon": int(salon_id),
-            "image": img
-        })
-
-        if serializer.is_valid():
-            instance = serializer.save()
-            image_ids.append(instance.id)
-        else:
-            print("⛔ Serializer invalide:", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({"success": True, "image_ids": image_ids}, status=status.HTTP_201_CREATED)
+# @api_view(['POST'])
+# @parser_classes([MultiPartParser, FormParser])
+# def add_images_to_salon(request):
+#     print("✅ La vue a bien été appelée !")
+#     salon_id = request.data.get('salon')
+#     images = request.FILES.getlist('image')
+#
+#     print("🧪 Reçues images:", [img.name for img in images])
+#
+#     if not salon_id or not images:
+#         return Response({"error": "Champs requis : salon, image(s)"}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     if len(images) < 3:
+#         return Response({"error": "Veuillez télécharger au moins 3 images."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     if len(images) > 12:
+#         return Response({"error": "Vous ne pouvez pas télécharger plus de 12 images."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     try:
+#         salon = TblSalon.objects.get(idTblSalon=salon_id)
+#     except TblSalon.DoesNotExist:
+#         return Response({"error": "Salon introuvable."}, status=status.HTTP_404_NOT_FOUND)
+#
+#     image_ids = []
+#     for img in images:
+#         print(f"-> Image: {img.name}, Taille: {img.size}")
+#
+#         if img.size > 6 * 1024 * 1024:
+#             return Response(
+#                 {"error": f"L'image '{img.name}' dépasse 6MB."},
+#                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+#             )
+#
+#         # ✅ ICI : c'est bien le champ `salon` (ID) et `image` (fichier)
+#         serializer = TblSalonImageSerializer(data={
+#             "salon": int(salon_id),
+#             "image": img
+#         })
+#
+#         if serializer.is_valid():
+#             instance = serializer.save()
+#             image_ids.append(instance.id)
+#         else:
+#             print("⛔ Serializer invalide:", serializer.errors)
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#     return Response({"success": True, "image_ids": image_ids}, status=status.HTTP_201_CREATED)
 
 
 # @api_view(['POST'])

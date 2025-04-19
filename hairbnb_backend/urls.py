@@ -41,9 +41,8 @@ urlpatterns = [
     path('api/get_id_and_type_from_uuid/<str:uuid>/', views.views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
     path('api/add_service_to_salon/', add_service_to_salon, name='add_service_to_salon'),
     path('api/', include('hairbnb.urls.serializers_urls')),  # Inclure les routes de serializers_urls.py
-    path('api/', include('hairbnb.urls.promotion_urls')),  # Inclure les routes de promotion_urls.py
+    path('api/', include('hairbnb.promotion.promotion_urls')),  # Inclure les routes de promotion_urls.py
+    path('api/', include('hairbnb.publicSalonDetail.urls')),  # Inclure les routes de publicSalonDetail_urls.py
+    path('api/', include('hairbnb.gallery.gallery_urls')),  # Inclure les routes de gallery_urls.py
+    path('api/', include('hairbnb.favorites.favorites_urls')),  # Inclure les routes de favorites_urls.py
 ]
-
-# Ajoutez ceci pour gérer les fichiers médias (Seulement en mode DEBUG)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

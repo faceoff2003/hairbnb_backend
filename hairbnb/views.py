@@ -624,4 +624,3 @@ def list_salon_with_coiffeuse(request):
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": f"Erreur serveur : {str(e)}"}, status=500)
-

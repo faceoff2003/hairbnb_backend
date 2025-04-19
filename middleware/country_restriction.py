@@ -5,6 +5,9 @@ import geoip2.database
 import os
 import logging
 
+# # 📍 Liste des IP autorisées
+ALLOWED_IPS = ['127.0.0.1', 'localhost', '::1', '91.86.53.160']
+
 # 📍 Logger personnalisé
 logger = logging.getLogger('geoip_blocker')
 
@@ -25,6 +28,10 @@ class CountryRestrictionMiddleware:
             ip = ip.split(',')[0].strip()
         else:
             ip = request.META.get('REMOTE_ADDR', '')
+
+        # ✅ Autorisation des IP locales
+        if ip in ALLOWED_IPS:
+            return self.get_response(request)
 
         try:
             response = self.reader.country(ip)
