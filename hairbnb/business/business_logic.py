@@ -168,38 +168,38 @@ class ClientData:
     def to_dict(self):
         return self.__dict__
 
-class CurrentUserData:
-    def __init__(self, user):
-        self.idTblUser = user.idTblUser
-        self.uuid = user.uuid
-        self.nom = user.nom
-        self.prenom = user.prenom
-        self.email = user.email
-        self.numero_telephone = user.numero_telephone
-        self.date_naissance = user.date_naissance
-        self.sexe = user.sexe
-        self.is_active = user.is_active
-        self.photo_profil = user.photo_profil.url if user.photo_profil else None
-        self.type = user.type  # Peut être "coiffeuse" ou "client"
-
-        # Vérifier si c'est une coiffeuse ou un client et récupérer les données associées
-        if user.type == "coiffeuse":
-            try:
-                coiffeuse = TblCoiffeuse.objects.get(idTblUsertbl=user)
-                self.extra_data = CoiffeuseData(coiffeuse).to_dict()  # Ajoute les infos de la coiffeuse
-            except TblCoiffeuse.DoesNotExist:
-                self.extra_data = None
-        elif user.type == "client":
-            try:
-                client = TblClient.objects.get(idTblUser=user)
-                self.extra_data = ClientData(client).to_dict()  # Ajoute les infos du client
-            except TblClient.DoesNotExist:
-                self.extra_data = None
-        else:
-            self.extra_data = None  # Aucune donnée complémentaire
-
-    def to_dict(self):
-        return self.__dict__
+# class CurrentUserData:
+#     def __init__(self, user):
+#         self.idTblUser = user.idTblUser
+#         self.uuid = user.uuid
+#         self.nom = user.nom
+#         self.prenom = user.prenom
+#         self.email = user.email
+#         self.numero_telephone = user.numero_telephone
+#         self.date_naissance = user.date_naissance
+#         self.sexe = user.sexe
+#         self.is_active = user.is_active
+#         self.photo_profil = user.photo_profil.url if user.photo_profil else None
+#         self.type = user.type  # Peut être "coiffeuse" ou "client"
+#
+#         # Vérifier si c'est une coiffeuse ou un client et récupérer les données associées
+#         if user.type == "coiffeuse":
+#             try:
+#                 coiffeuse = TblCoiffeuse.objects.get(idTblUsertbl=user)
+#                 self.extra_data = CoiffeuseData(coiffeuse).to_dict()  # Ajoute les infos de la coiffeuse
+#             except TblCoiffeuse.DoesNotExist:
+#                 self.extra_data = None
+#         elif user.type == "client":
+#             try:
+#                 client = TblClient.objects.get(idTblUser=user)
+#                 self.extra_data = ClientData(client).to_dict()  # Ajoute les infos du client
+#             except TblClient.DoesNotExist:
+#                 self.extra_data = None
+#         else:
+#             self.extra_data = None  # Aucune donnée complémentaire
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 from hairbnb.models import TblCoiffeuse
 
@@ -221,50 +221,50 @@ from decimal import Decimal
 from django.utils.timezone import now
 from hairbnb.models import TblPromotion
 
-class CartItemData:
-    def __init__(self, cart_item):
-        self.id = cart_item.idTblCartItem
-        self.service = self._get_service_data(cart_item.service)
-        self.quantity = cart_item.quantity
-
-    def _get_service_data(self, service):
-        """ Récupère les informations du service et applique la promotion si disponible """
-        prix_standard = service.service_prix.first().prix.prix if service.service_prix.exists() else Decimal("0.00")
-
-        # Vérifier s'il y a une promotion active
-        promo = TblPromotion.objects.filter(
-            service=service,
-            start_date__lte=now(),
-            end_date__gte=now()
-        ).first()
-
-        if promo:  # Appliquer la réduction
-            reduction = (promo.discount_percentage / Decimal("100")) * prix_standard
-            prix_final = prix_standard - reduction
-            promo_data = {
-                "idPromotion": promo.idPromotion,
-                "service_id": service.idTblService,
-                "discount_percentage": promo.discount_percentage,
-                "start_date": promo.start_date,
-                "end_date": promo.end_date,
-                "is_active": promo.is_active()
-            }
-        else:  # Pas de promo
-            prix_final = prix_standard
-            promo_data = None
-
-        return {
-            "idTblService": service.idTblService,
-            "intitule_service": service.intitule_service,
-            "description": service.description,
-            "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
-            "prix": float(prix_standard),
-            "promotion": promo_data,
-            "prix_final": float(prix_final)  # ✅ Prix recalculé avec promo appliquée
-        }
-
-    def to_dict(self):
-        return self.__dict__
+# class CartItemData:
+#     def __init__(self, cart_item):
+#         self.id = cart_item.idTblCartItem
+#         self.service = self._get_service_data(cart_item.service)
+#         self.quantity = cart_item.quantity
+#
+#     def _get_service_data(self, service):
+#         """ Récupère les informations du service et applique la promotion si disponible """
+#         prix_standard = service.service_prix.first().prix.prix if service.service_prix.exists() else Decimal("0.00")
+#
+#         # Vérifier s'il y a une promotion active
+#         promo = TblPromotion.objects.filter(
+#             service=service,
+#             start_date__lte=now(),
+#             end_date__gte=now()
+#         ).first()
+#
+#         if promo:  # Appliquer la réduction
+#             reduction = (promo.discount_percentage / Decimal("100")) * prix_standard
+#             prix_final = prix_standard - reduction
+#             promo_data = {
+#                 "idPromotion": promo.idPromotion,
+#                 "service_id": service.idTblService,
+#                 "discount_percentage": promo.discount_percentage,
+#                 "start_date": promo.start_date,
+#                 "end_date": promo.end_date,
+#                 "is_active": promo.is_active()
+#             }
+#         else:  # Pas de promo
+#             prix_final = prix_standard
+#             promo_data = None
+#
+#         return {
+#             "idTblService": service.idTblService,
+#             "intitule_service": service.intitule_service,
+#             "description": service.description,
+#             "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
+#             "prix": float(prix_standard),
+#             "promotion": promo_data,
+#             "prix_final": float(prix_final)  # ✅ Prix recalculé avec promo appliquée
+#         }
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 
 # class CartItemData:
@@ -289,15 +289,15 @@ class CartItemData:
 #         return self.__dict__
 
 
-class CartData:
-    def __init__(self, cart):
-        self.idTblCart = cart.idTblCart
-        self.user = CurrentUserData(cart.user).to_dict()  # Réutilise CurrentUserData
-        self.items = [CartItemData(item).to_dict() for item in cart.items.all()]
-        self.total_price = cart.total_price()  # Méthode qui calcule le total
-
-    def to_dict(self):
-        return self.__dict__
+# class CartData:
+#     def __init__(self, cart):
+#         self.idTblCart = cart.idTblCart
+#         self.user = CurrentUserData(cart.user).to_dict()  # Réutilise CurrentUserData
+#         self.items = [CartItemData(item).to_dict() for item in cart.items.all()]
+#         self.total_price = cart.total_price()  # Méthode qui calcule le total
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 from django.utils.timezone import now
 
@@ -496,35 +496,35 @@ class PaiementData:
     def to_dict(self):
         return self.__dict__
 
-    @staticmethod
-    def create_payment_intent(rendez_vous_id, methode_paiement):
-        """
-        Crée un PaymentIntent Stripe et retourne le client_secret.
-        """
-        try:
-            rdv = TblRendezVous.objects.get(idRendezVous=rendez_vous_id)
-
-            payment_intent = stripe.PaymentIntent.create(
-                amount=int(rdv.total_prix * 100),  # Convertir en centimes
-                currency="eur",
-                payment_method_types=["card"],
-                metadata={"rendez_vous_id": rdv.idRendezVous}
-            )
-
-            # Créer un paiement en attente
-            paiement = TblPaiement.objects.create(
-                rendez_vous=rdv,
-                montant_paye=rdv.total_prix,
-                methode=methode_paiement,
-                statut="en attente"
-            )
-
-            return {"client_secret": payment_intent.client_secret, "paiement": PaiementData(paiement).to_dict()}
-
-        except TblRendezVous.DoesNotExist:
-            return {"error": "Rendez-vous non trouvé"}
-        except Exception as e:
-            return {"error": str(e)}
+    # @staticmethod
+    # def create_payment_intent(rendez_vous_id, methode_paiement):
+    #     """
+    #     Crée un PaymentIntent Stripe et retourne le client_secret.
+    #     """
+    #     try:
+    #         rdv = TblRendezVous.objects.get(idRendezVous=rendez_vous_id)
+    #
+    #         payment_intent = stripe.PaymentIntent.create(
+    #             amount=int(rdv.total_prix * 100),  # Convertir en centimes
+    #             currency="eur",
+    #             payment_method_types=["card"],
+    #             metadata={"rendez_vous_id": rdv.idRendezVous}
+    #         )
+    #
+    #         # Créer un paiement en attente
+    #         paiement = TblPaiement.objects.create(
+    #             rendez_vous=rdv,
+    #             montant_paye=rdv.total_prix,
+    #             methode=methode_paiement,
+    #             statut="en attente"
+    #         )
+    #
+    #         return {"client_secret": payment_intent.client_secret, "paiement": PaiementData(paiement).to_dict()}
+    #
+    #     except TblRendezVous.DoesNotExist:
+    #         return {"error": "Rendez-vous non trouvé"}
+    #     except Exception as e:
+    #         return {"error": str(e)}
 
 class HoraireCoiffeuseData:
     def __init__(self, horaire):

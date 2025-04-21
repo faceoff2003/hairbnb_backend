@@ -48,7 +48,7 @@ def set_horaire_coiffeuse(request):
 
         # Récupérer l'objet coiffeuse via l'ID utilisateur
         coiffeuse = TblCoiffeuse.objects.get(idTblUser__idTblUser=coiffeuse_id)
-        print(f">> Coiffeuse trouvée: {coiffeuse.idTblUser.nom}")
+        #print(f">> Coiffeuse trouvée: {coiffeuse.idTblUser.nom}")
 
         # Création ou mise à jour
         horaire, created = TblHoraireCoiffeuse.objects.update_or_create(

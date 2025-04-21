@@ -1,10 +1,11 @@
 from django.urls import path
 
-from hairbnb.favorites.favorites_views import get_favorites, add_favorite, remove_favorite
+from hairbnb.favorites.favorites_views import get_favorites, add_favorite, remove_favorite, get_user_favorites
 
 urlpatterns = [
     path('favorites/', get_favorites),
     path('favorites/add/', add_favorite),
-    path('favorites/remove/<int:salon_id>/', remove_favorite),
+    path('favorites/remove/', remove_favorite, name='remove_favorite'),
+    path('get_user_favorites/', get_user_favorites, name='get_user_favorites'),
 
 ]

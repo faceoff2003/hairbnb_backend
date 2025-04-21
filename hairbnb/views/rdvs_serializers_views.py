@@ -19,7 +19,7 @@ def create_rendez_vous(request):
     en prenant en compte les promotions et en calculant le prix final et la durée totale.
     """
     try:
-        print("📌 Requête reçue:", request.data)  # ✅ Log pour voir les données reçues
+        #print("📌 Requête reçue:", request.data)  # ✅ Log pour voir les données reçues
 
         user_id = request.data.get('user_id')  # ID du client
         coiffeuse_id = request.data.get('coiffeuse_id')  # ID de la coiffeuse
@@ -39,9 +39,9 @@ def create_rendez_vous(request):
         # ✅ Récupère automatiquement l'ID du salon à partir de la coiffeuse
         salon = get_object_or_404(TblSalon, coiffeuse=coiffeuse)
 
-        print(f"✅ Client trouvé: {client}")
-        print(f"✅ Coiffeuse trouvée: {coiffeuse}")
-        print(f"✅ Salon trouvé: {salon}")
+        #print(f"✅ Client trouvé: {client}")
+        #print(f"✅ Coiffeuse trouvée: {coiffeuse}")
+        #print(f"✅ Salon trouvé: {salon}")
 
         # Initialisation des totaux
         total_prix = Decimal("0.00")
@@ -61,17 +61,17 @@ def create_rendez_vous(request):
         # Ajouter les services au rendez-vous et calculer les totaux
         for service_id in services_ids:
             service = get_object_or_404(TblService, idTblService=service_id)
-            print(f"🔍 Service trouvé: {service.intitule_service}")
+            #print(f"🔍 Service trouvé: {service.intitule_service}")
 
             # 🔥 Récupère le prix standard
             prix_service_obj = TblServicePrix.objects.filter(service=service).first()
             prix_service = prix_service_obj.prix.prix if prix_service_obj else Decimal("0.00")
-            print(f"💰 Prix du service: {prix_service}")
+            #print(f"💰 Prix du service: {prix_service}")
 
             # 🔥 Récupère la durée estimée
             temps_service_obj = TblServiceTemps.objects.filter(service=service).first()
             duree_service = temps_service_obj.temps.minutes if temps_service_obj else 0
-            print(f"⏳ Durée du service: {duree_service} min")
+            #print(f"⏳ Durée du service: {duree_service} min")
 
             # 🔥 Vérifier s'il y a une promotion active
             promo = TblPromotion.objects.filter(
@@ -84,10 +84,10 @@ def create_rendez_vous(request):
             if promo:
                 reduction = (promo.discount_percentage / Decimal("100")) * prix_service
                 prix_applique = prix_service - reduction  # Prix final avec réduction
-                print(f"🔥 Promo appliquée: {promo.discount_percentage}% -> {prix_applique} €")
+                #print(f"🔥 Promo appliquée: {promo.discount_percentage}% -> {prix_applique} €")
             else:
                 prix_applique = prix_service  # Prix normal sans réduction
-                print("⚠️ Pas de promotion active.")
+                #print("⚠️ Pas de promotion active.")
 
             # 🔹 Ajouter le service au rendez-vous
             TblRendezVousService.objects.create(
@@ -106,7 +106,7 @@ def create_rendez_vous(request):
         rdv.duree_totale = total_duree
         rdv.save()  # Sauvegarde du rendez-vous avec les valeurs mises à jour
 
-        print(f"✅ Rendez-vous créé: {rdv}")
+        #print(f"✅ Rendez-vous créé: {rdv}")
 
         return Response({
             "message": "Rendez-vous créé ✅ avec prise en compte des promotions",
@@ -119,7 +119,7 @@ def create_rendez_vous(request):
         }, status=201)
 
     except Exception as e:
-        print(f"❌ Erreur serveur: {e}")  # ✅ Capture et affiche l'erreur dans la console
+        #print(f"❌ Erreur serveur: {e}")  # ✅ Capture et affiche l'erreur dans la console
         return Response({"error": f"Erreur serveur: {str(e)}"}, status=500)
 
 @api_view(['GET'])

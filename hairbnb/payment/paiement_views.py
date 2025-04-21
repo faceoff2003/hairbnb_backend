@@ -1,8 +1,13 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from hairbnb.business.business_logic import PaiementData
+
+from decorators.decorators import firebase_authenticated, is_owner
+from hairbnb.payment.payment_business_logic import PaiementData
+
 
 @api_view(['POST'])
+@firebase_authenticated
+@is_owner("user_id")
 def create_payment_intent(request):
     """
     API pour créer un paiement Stripe.

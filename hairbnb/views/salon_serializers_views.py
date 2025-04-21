@@ -3,7 +3,6 @@ from rest_framework.parsers import MultiPartParser
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
-from rest_framework.parsers import FormParser
 from rest_framework.response import Response
 
 from hairbnb.models import TblUser, TblCoiffeuse, TblSalon

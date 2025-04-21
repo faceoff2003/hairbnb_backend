@@ -9,8 +9,9 @@ from rest_framework.response import Response
 
 from .views import logger
 from ..business.business_logic import MinimalCoiffeuseData
+from ..currentUser.CurrentUser_serializer import CurrentUserSerializer
 from ..models import TblCoiffeuse, TblClient, TblUser, TblSalon
-from ..serializers.users_serializers import CoiffeuseSerializer, ClientSerializer, CurrentUserSerializer
+from ..serializers.users_serializers import CoiffeuseSerializer, ClientSerializer
 
 
 #*****************************************Afficher la coiffeuse****************************************
@@ -87,20 +88,20 @@ def update_client(request, uuid):
 
 # **************************************************************************************************************************
                        #get_current_user (Assure que l'utilisateur est connecté et renvoi le current user)
-# **************************************************************************************************************************
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Assure que l'utilisateur est connecté
-def get_current_user(request):
-    """
-    API Endpoint pour récupérer les informations du current user.
-    """
-    try:
-        user = TblUser.objects.get(uuid=request.tbluser.uuid)  # On récupère l'utilisateur via son UUID Firebase
-        serializer = CurrentUserSerializer(user)
-        return Response({"status": "success", "user": serializer.data}, status=200)
-    except TblUser.DoesNotExist:
-        return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
-# **************************************************************************************************************************
+# # **************************************************************************************************************************
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])  # Assure que l'utilisateur est connecté
+# def get_current_user(request):
+#     """
+#     API Endpoint pour récupérer les informations du current user.
+#     """
+#     try:
+#         user = TblUser.objects.get(uuid=request.tbluser.uuid)  # On récupère l'utilisateur via son UUID Firebase
+#         serializer = CurrentUserSerializer(user)
+#         return Response({"status": "success", "user": serializer.data}, status=200)
+#     except TblUser.DoesNotExist:
+#         return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
+# # **************************************************************************************************************************
 
 # **************************************************************************************************************************
                             #get_current_user (Reçoi le uuid et renvoi le current user)

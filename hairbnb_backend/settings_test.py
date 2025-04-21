@@ -108,9 +108,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.country_restriction.CountryRestrictionMiddleware',
+    'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
+    'middleware.bypass_csrf_middleware.BypassCSRFMiddleware',
 ]
 
-# Configuration de Axes (protection contre les attaques par force brute)
+
+
 
 # Nombre d'échecs consécutifs avant de bloquer l'accès (par IP)
 AXES_FAILURE_LIMIT = 5
@@ -124,6 +127,10 @@ AXES_LOCKOUT_CALLABLE = 'axes.handlers.database.AxesDatabaseHandler'
 
 # Si l'utilisateur se connecte correctement après un blocage, remettre à zéro le compteur d'échecs
 AXES_RESET_ON_SUCCESS = True
+
+
+# Chemin vers le fichier de configuration Firebase
+FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase_auth_services/firebase_credentials.json')
 
 
 
@@ -233,18 +240,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://91.86.53.160"
 ]
 
-
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site"]
+CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site","http://localhost:53655",]
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
-
-
-# CSRF_TRUSTED_ORIGINS = ["https://hairbnb.site"]
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

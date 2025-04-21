@@ -1,37 +1,41 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from datetime import datetime
+
+from decorators.decorators import firebase_authenticated, is_owner
 from hairbnb.models import TblCoiffeuse, TblUser
 from hairbnb.business.business_logic import DisponibiliteManager
 
 @api_view(['GET'])
+#@firebase_authenticated
+#@is_owner("idUser")
 def get_disponibilites_client(request, idUser):
     try:
         date_str = request.GET.get("date")
         duree = int(request.GET.get("duree", 30))  # durée par défaut : 30 min
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
-        print("📅 Date demandée :", date)
-        print("⏱️ Durée du service :", duree, "minutes")
+        #print("📅 Date demandée :", date)
+        #print("⏱️ Durée du service :", duree, "minutes")
 
         # 1️⃣ Vérifier que l'utilisateur est bien une coiffeuse
         user = TblUser.objects.get(idTblUser=idUser, type='coiffeuse')
-        print("🙋 Utilisateur trouvé :", user)
+        #print("🙋 Utilisateur trouvé :", user)
 
         # 2️⃣ Accéder à la coiffeuse via la relation OneToOne
         coiffeuse = user.coiffeuse  # ⚠️ nécessite related_name='coiffeuse' (ce que tu as mis)
-        print("💇 Coiffeuse :", coiffeuse)
+        #print("💇 Coiffeuse :", coiffeuse)
 
         # 3️⃣ Calcul des disponibilités
         manager = DisponibiliteManager(coiffeuse)
         jour = date.weekday()
 
-        print("📆 Jour de la semaine :", jour)
-        print("📌 Jours ouverts :", manager.get_jours_ouverts())
+        #print("📆 Jour de la semaine :", jour)
+        #print("📌 Jours ouverts :", manager.get_jours_ouverts())
 
         dispos = manager.get_dispos_pour_jour(date, duree)
 
-        print("✅ Créneaux disponibles :", dispos)
+        #print("✅ Créneaux disponibles :", dispos)
         return Response({
             "date": date_str,
             "disponibilites": [
@@ -53,46 +57,6 @@ def get_disponibilites_client(request, idUser):
         print("❌ ERREUR :", e)
         traceback.print_exc()
         return Response({"error": str(e)}, status=500)
-
-
-
-# @api_view(['GET'])
-# def get_disponibilites_client(request, coiffeuse_id):
-#     try:
-#         date_str = request.GET.get("date")
-#         duree = int(request.GET.get("duree", 30))  # durée par défaut : 30 min
-#         date = datetime.strptime(date_str, "%Y-%m-%d").date()
-#
-#         print("📅 Date demandée :", date)
-#         print("⏱️ Durée du service :", duree, "minutes")
-#
-#         coiffeuse = TblCoiffeuse.objects.get(pk=coiffeuse_id)
-#         print("💇 Coiffeuse :", coiffeuse)
-#
-#         manager = DisponibiliteManager(coiffeuse)
-#         jour = date.weekday()
-#
-#         print("📆 Jour de la semaine :", jour)
-#         print("📌 Jours ouverts :", manager.get_jours_ouverts())
-#
-#         dispos = manager.get_dispos_pour_jour(date, duree)
-#
-#         print("✅ Créneaux disponibles :", dispos)
-#         return Response({
-#             "date": date_str,
-#             "disponibilites": [
-#                 {
-#                     "debut": d.strftime("%H:%M"),
-#                     "fin": f.strftime("%H:%M")
-#                 } for d, f in dispos
-#             ]
-#         })
-#
-#     except Exception as e:
-#         import traceback
-#         print("❌ ERREUR :", e)
-#         traceback.print_exc()
-#         return Response({"error": str(e)}, status=500)
 
 
 @api_view(['GET'])
