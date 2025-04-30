@@ -486,26 +486,172 @@ class TblRendezVousService(models.Model):
     def __str__(self):
         return f"{self.service.intitule_service} ({self.prix_applique} €) pour RDV {self.rendez_vous.idRendezVous}"
 
-class TblPaiement(models.Model):
-    idPaiement = models.AutoField(primary_key=True)
-    rendez_vous = models.OneToOneField(
-        'TblRendezVous', on_delete=models.CASCADE, related_name='paiement'
-    )
-    montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
-    date_paiement = models.DateTimeField(auto_now_add=True)
-    methode = models.CharField(
-        max_length=20,
-        choices=[('carte', 'Carte'), ('cash', 'Cash'), ('paypal', 'PayPal')],
-        default='carte'
-    )
-    statut = models.CharField(
-        max_length=20,
-        choices=[('en attente', 'En attente'), ('payé', 'Payé'), ('remboursé', 'Remboursé')],
-        default='en attente'
-    )
+
+class TblPaiementStatut(models.Model):
+    """
+    Table des statuts de paiement disponibles.
+
+    Exemples :
+    - en_attente → En attente
+    - payé → Payé
+    - remboursé → Remboursé
+    """
+    idTblPaiementStatut = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50, unique=True)      # ex: 'payé'
+    libelle = models.CharField(max_length=100)               # ex: 'Payé'
 
     def __str__(self):
-        return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
+        return self.libelle
+
+class TblMethodePaiement(models.Model):
+    """
+    Table des méthodes de paiement autorisées.
+
+    Exemples :
+    - card → Carte Bancaire
+    - apple_pay → Apple Pay
+    """
+    idTblMethodePaiement = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50, unique=True)      # ex: 'card'
+    libelle = models.CharField(max_length=100)               # ex: 'Carte Bancaire'
+
+    def __str__(self):
+        return self.libelle
+
+
+class TblPaiement(models.Model):
+    """
+    Paiement effectué pour un rendez-vous Hairbnb.
+
+    Enregistre toutes les données nécessaires au suivi, à la facturation,
+    et à la communication avec Stripe.
+    """
+
+    idTblPaiement = models.AutoField(primary_key=True)
+
+    # 🔗 Lien vers le rendez-vous
+    rendez_vous = models.ForeignKey('TblRendezVous', on_delete=models.CASCADE)
+
+    # 🔗 Lien vers l'utilisateur
+    utilisateur = models.ForeignKey('TblUser', on_delete=models.CASCADE,null=True,blank=True)
+
+    # 💰 Montant payé en euros
+    montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # 🕓 Date et heure du paiement
+    date_paiement = models.DateTimeField(auto_now_add=True)
+
+    # 🔗 Statut du paiement
+    statut = models.ForeignKey('TblPaiementStatut', on_delete=models.PROTECT)
+
+    # 🔗 Méthode de paiement utilisée
+    methode = models.ForeignKey('TblMethodePaiement', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # 📡 Identifiants Stripe
+    stripe_payment_intent_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    stripe_charge_id = models.CharField(max_length=50, null=True, blank=True)
+    stripe_customer_id = models.CharField(max_length=50, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(max_length=100, null=True, blank=True)
+
+    # 📧 Email du client (pour factures, relances, etc.)
+    email_client = models.EmailField(max_length=30, null=True, blank=True)
+
+    # 🧾 Lien vers le reçu Stripe
+    receipt_url = models.URLField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"Paiement de {self.montant_paye}€ pour le RDV #{self.rendez_vous.idRendezVous} — {self.statut.libelle}"
+
+
+# class TblPaiement(models.Model):
+#     idPaiement = models.AutoField(primary_key=True)
+#     rendez_vous = models.OneToOneField(
+#         'TblRendezVous', on_delete=models.CASCADE, related_name='paiement'
+#     )
+#     montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
+#     date_paiement = models.DateTimeField(auto_now_add=True)
+#     methode = models.CharField(
+#         max_length=20,
+#         choices=[('carte', 'Carte'), ('cash', 'Cash'), ('paypal', 'PayPal')],
+#         default='carte'
+#     )
+#     statut = models.CharField(
+#         max_length=20,
+#         choices=[('en attente', 'En attente'), ('payé', 'Payé'), ('remboursé', 'Remboursé')],
+#         default='en attente'
+#    )
+#
+#     def __str__(self):
+#         return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
+
+
+
+class TblTransaction(models.Model):
+    """
+    Modèle représentant une transaction financière liée à un paiement.
+
+    Cette table permet de tracer de manière détaillée toutes les opérations
+    financières effectuées pour un rendez-vous, que ce soit un paiement
+    initial ou un remboursement partiel/total.
+
+    Elle est utile pour gérer des cas complexes comme :
+    - les paiements partiels,
+    - les remboursements après annulation,
+    - l’historique des opérations pour audit ou export comptable.
+
+    Attributs :
+    -----------
+    paiement : ForeignKey
+        Référence au paiement parent (TblPaiement) auquel la transaction est rattachée.
+        Cela permet d'associer plusieurs transactions (paiement et remboursement)
+        à un même rendez-vous payé.
+
+    type : CharField
+        Indique le type de transaction :
+        - 'paiement' : transaction créditrice (argent entrant).
+        - 'remboursement' : transaction débitrice (argent sortant).
+        Champ limité à 10 caractères.
+
+    montant : DecimalField
+        Le montant de la transaction, en euros (€).
+        Format : maximum 10 chiffres, dont 2 après la virgule.
+        Ce champ permet une traçabilité financière précise.
+
+    date_transaction : DateTimeField
+        Date et heure de la transaction, enregistrée automatiquement à la création.
+
+    statut : CharField
+        Statut de la transaction, utile si elle est en cours ou à confirmer :
+        - 'effectué' : la transaction a bien été réalisée.
+        - 'en attente' : la transaction est prévue mais pas encore complétée.
+
+    Exemple d'usage :
+    -----------------
+        - Enregistrer un paiement partiel :
+            TblTransaction.objects.create(
+                paiement=p,
+                type='paiement',
+                montant=30.00,
+                statut='effectué'
+            )
+
+        - Ajouter un remboursement :
+            TblTransaction.objects.create(
+                paiement=p,
+                type='remboursement',
+                montant=15.00,
+                statut='effectué'
+            )
+    """
+    paiement = models.ForeignKey('TblPaiement', on_delete=models.CASCADE, related_name='transactions')
+    type = models.CharField(max_length=13, choices=[('paiement', 'Paiement'), ('remboursement', 'Remboursement')])
+    montant = models.DecimalField(max_digits=10, decimal_places=2)
+    date_transaction = models.DateTimeField(auto_now_add=True)
+    statut = models.CharField(max_length=20, choices=[('effectué', 'Effectué'), ('en attente', 'En attente')])
+
+    def __str__(self):
+        return f"{self.get_type_display()} de {self.montant}€ - {self.get_statut_display()}"
+
 
 class TblHoraireCoiffeuse(models.Model):
     coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='horaires')

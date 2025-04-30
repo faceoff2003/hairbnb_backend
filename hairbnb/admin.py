@@ -4,7 +4,8 @@ from hairbnb.models import (
     TblSalon, TblService, TblPrix, TblTemps, TblSalonService,
     TblServicePrix, TblServiceTemps, TblCart, TblCartItem,
     TblPromotion, TblRendezVous, TblPaiement, TblRendezVousService,
-    TblIndisponibilite, TblHoraireCoiffeuse, TblSalonImage, TblAvis
+    TblIndisponibilite, TblHoraireCoiffeuse, TblSalonImage, TblAvis, TblFavorite, TblTransaction, TblPaiementStatut,
+    TblMethodePaiement
 )
 
 admin.site.register(TblLocalite)
@@ -30,3 +31,7 @@ admin.site.register(TblPaiement)
 admin.site.register(TblRendezVousService)
 admin.site.register(TblHoraireCoiffeuse)
 admin.site.register(TblIndisponibilite)
+admin.site.register(TblFavorite)
+admin.site.register(TblTransaction)         # ✅ transaction liée à un paiement
+admin.site.register(TblPaiementStatut)     # ✅ statut des paiements
+admin.site.register(TblMethodePaiement)    # ✅ méthode de paiement

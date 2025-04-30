@@ -482,19 +482,19 @@ class RendezVousData:
 
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
 
-class PaiementData:
-    """Classe pour structurer un paiement."""
-
-    def __init__(self, paiement):
-        self.idPaiement = paiement.idPaiement
-        self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
-        self.montant_paye = paiement.montant_paye
-        self.date_paiement = paiement.date_paiement.isoformat()
-        self.methode = paiement.methode
-        self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
-
-    def to_dict(self):
-        return self.__dict__
+# class PaiementData:
+#     """Classe pour structurer un paiement."""
+#
+#     def __init__(self, paiement):
+#         self.idPaiement = paiement.idPaiement
+#         self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
+#         self.montant_paye = paiement.montant_paye
+#         self.date_paiement = paiement.date_paiement.isoformat()
+#         self.methode = paiement.methode
+#         self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
+#
+#     def to_dict(self):
+#         return self.__dict__
 
     # @staticmethod
     # def create_payment_intent(rendez_vous_id, methode_paiement):
