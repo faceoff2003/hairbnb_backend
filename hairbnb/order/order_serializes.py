@@ -68,6 +68,7 @@ class CommandeCoiffeuseSerializer(serializers.ModelSerializer):
     nom_client = serializers.CharField(source='client.idTblUser.nom')
     prenom_client = serializers.CharField(source='client.idTblUser.prenom')
     telephone_client = serializers.CharField(source='client.idTblUser.numero_telephone')
+    email_client = serializers.CharField(source='client.idTblUser.email')
 
     # Informations sur le salon
     nom_salon = serializers.CharField(source='salon.nom_salon')
@@ -101,6 +102,7 @@ class CommandeCoiffeuseSerializer(serializers.ModelSerializer):
             'nom_client',
             'prenom_client',
             'telephone_client',
+            'email_client',
             'nom_salon',
             'total_prix',
             'duree_totale',

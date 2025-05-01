@@ -1,5 +1,6 @@
 from django.core.validators import MaxLengthValidator, MinValueValidator, MaxValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.timezone import now
 from decimal import Decimal
 from hairbnb.services.validators import validate_max_images
@@ -127,22 +128,6 @@ class TblPrix(models.Model):
         return f"{self.prix} €"
 
 
-# class TblPrix(models.Model):
-#     idTblPrix = models.AutoField(primary_key=True)
-#     prix = models.DecimalField(max_digits=10, decimal_places=2, unique=True)  # ✅ UNIQUE
-#
-#     def __str__(self):
-#         return f"{self.prix} €"
-
-
-# class TblPrix(models.Model):
-#     idTblPrix = models.AutoField(primary_key=True)
-#     prix = models.DecimalField(max_digits=10, decimal_places=2)  # Prix en euros
-#
-#     def __str__(self):
-#         return f"{self.prix} €"
-
-
 # Table pour gérer les services
 class TblService(models.Model):
     idTblService = models.AutoField(primary_key=True)
@@ -152,31 +137,6 @@ class TblService(models.Model):
 
     def __str__(self):
         return f"{self.intitule_service} €"
-
-
-# Table pour gérer les salons
-#--------------------La zone de salon-------------------------------
-
-# class TblSalon(models.Model):
-#     idTblSalon = models.AutoField(primary_key=True)
-#
-#     coiffeuse = models.OneToOneField(
-#         'TblCoiffeuse',
-#         on_delete=models.CASCADE,
-#         related_name='salon'
-#     )
-#
-#     nom_salon = models.CharField(max_length=30)  # ✅ nouveau champ obligatoire
-#
-#     slogan = models.CharField(max_length=75)
-#
-#     logo_salon = models.ImageField(
-#         upload_to='photos/logos/',
-#         default='photos/defaults/logo_default.png'
-#     )
-#
-#     def __str__(self):
-#         return f"{self.nom_salon} - {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
 
 class TblSalon(models.Model):
@@ -200,27 +160,6 @@ class TblSalon(models.Model):
     def __str__(self):
         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
-# class TblSalon(models.Model):
-#     idTblSalon = models.AutoField(primary_key=True)
-#     coiffeuse = models.OneToOneField(
-#         'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
-#     )
-#
-#     nom_salon = models.CharField(max_length=30)
-#
-#     slogan = models.CharField(max_length=255, blank=True, null=True)
-#     logo_salon = models.ImageField(
-#         upload_to='photos/logos/',
-#         null=True,
-#         blank=True,
-#         default='photos/defaults/logo_default.png'  # Logo par défaut
-#     )
-#     services = models.ManyToManyField(
-#         TblService, related_name='salons', through='TblSalonService'
-#     )
-#     def __str__(self):
-#         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
-
 #------------------------------------TblSalonImage---------------------------------------
 
 class TblSalonImage(models.Model):
@@ -237,9 +176,6 @@ class TblSalonImage(models.Model):
     def __str__(self):
         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - ID {self.id}"
 
-    # def save(self, *args, **kwargs):
-    #     validate_max_images(self.salon)
-    #     super().save(*args, **kwargs)
     def save(self, *args, **kwargs):
         try:
             validate_max_images(self.salon)
@@ -276,21 +212,6 @@ class TblSalonService(models.Model):
     def __str__(self):
         return f"Service '{self.service.intitule_service}' pour le salon '{self.salon.coiffeuse.idTblUser.nom}'"
 
-
-# Table pour gérer les images de salon
-# class TblImageSalon(models.Model):
-#     idTblImageSalon = models.AutoField(primary_key=True)
-#     urlImages = models.ImageField(upload_to=salon_image_upload_to)  # Appel de la méthode externe
-#     salon = models.ForeignKey(
-#         TblSalon,
-#         on_delete=models.CASCADE,
-#         related_name='images'
-#     )
-#
-#     def __str__(self):
-#         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - {self.urlImages.name}"
-
-    # Table de jonction pour relier les services et les temps
 class TblServiceTemps(models.Model):
     idServiceTemps = models.AutoField(primary_key=True)
     service = models.ForeignKey(
@@ -306,25 +227,6 @@ class TblServiceTemps(models.Model):
     def __str__(self):
         return f"Temps de {self.temps.minutes} minutes pour le service '{self.service.intitule_service}'"
 
-
-from django.core.validators import MaxValueValidator, MinValueValidator
-
-# class TblServicePrix(models.Model):
-#     idServicePrix = models.AutoField(primary_key=True)
-#     service = models.ForeignKey(
-#         TblService, on_delete=models.CASCADE, related_name="service_prix"
-#     )
-#     prix = models.DecimalField(
-#         max_digits=6,
-#         decimal_places=2,
-#         validators=[MinValueValidator(0), MaxValueValidator(1000)]
-#     )
-#
-#     class Meta:
-#         unique_together = ('service',)  # Chaque service doit avoir une seule ligne dans TblServicePrix
-#
-#     def __str__(self):
-#         return f"Prix de {self.prix} € pour le service '{self.service.intitule_service}'"
 
 class TblServicePrix(models.Model):
     idServicePrix = models.AutoField(primary_key=True)
@@ -398,11 +300,6 @@ class TblPromotion(models.Model):
 
         print(f"DEBUG is_active: today={current_date}, start={start_date}, end={end_date}")
         return start_date <= current_date <= end_date
-    # def is_active(self):
-    #     """
-    #     Vérifie si la promotion est active en fonction de la date actuelle.
-    #     """
-    #     return self.start_date <= now() <= self.end_date
 
     def __str__(self):
         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
@@ -562,30 +459,6 @@ class TblPaiement(models.Model):
     def __str__(self):
         return f"Paiement de {self.montant_paye}€ pour le RDV #{self.rendez_vous.idRendezVous} — {self.statut.libelle}"
 
-
-# class TblPaiement(models.Model):
-#     idPaiement = models.AutoField(primary_key=True)
-#     rendez_vous = models.OneToOneField(
-#         'TblRendezVous', on_delete=models.CASCADE, related_name='paiement'
-#     )
-#     montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
-#     date_paiement = models.DateTimeField(auto_now_add=True)
-#     methode = models.CharField(
-#         max_length=20,
-#         choices=[('carte', 'Carte'), ('cash', 'Cash'), ('paypal', 'PayPal')],
-#         default='carte'
-#     )
-#     statut = models.CharField(
-#         max_length=20,
-#         choices=[('en attente', 'En attente'), ('payé', 'Payé'), ('remboursé', 'Remboursé')],
-#         default='en attente'
-#    )
-#
-#     def __str__(self):
-#         return f"Paiement de {self.montant_paye}€ pour RDV {self.rendez_vous.idRendezVous}"
-
-
-
 class TblTransaction(models.Model):
     """
     Modèle représentant une transaction financière liée à un paiement.
@@ -698,5 +571,83 @@ class TblFavorite(models.Model):
 
     def __str__(self):
         return f"{self.user.nom} ♥ {self.salon.nom_salon if hasattr(self.salon, 'nom_salon') else self.salon.idTblSalon}"
+
+
+class TblEmailType(models.Model):
+    """Table des types d'emails de notification."""
+    idTblEmailType = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=30, unique=True)  # Code technique (ex: 'confirmation_rdv')
+    libelle = models.CharField(max_length=50)  # Libellé lisible (ex: 'Confirmation de rendez-vous')
+
+    def __str__(self):
+        return self.libelle
+
+
+class TblEmailStatus(models.Model):
+    """Table des statuts d'envoi d'emails."""
+    idTblEmailStatus = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=20, unique=True)  # Code technique (ex: 'en_attente')
+    libelle = models.CharField(max_length=30)  # Libellé lisible (ex: 'En attente d'envoi')
+
+    def __str__(self):
+        return self.libelle
+
+
+class TblEmailNotification(models.Model):
+    """Table des notifications par email envoyées aux utilisateurs."""
+    idTblEmailNotification = models.AutoField(primary_key=True)
+
+    # Relations avec les autres tables
+    destinataire = models.ForeignKey(
+        'TblUser',
+        on_delete=models.CASCADE,
+        related_name='emails_recus'
+    )
+    salon = models.ForeignKey(
+        'TblSalon',
+        on_delete=models.CASCADE,
+        related_name='emails_envoyes',
+        null=True,
+        blank=True
+    )
+    rendez_vous = models.ForeignKey(
+        'TblRendezVous',
+        on_delete=models.CASCADE,
+        related_name='emails_notification',
+        null=True,
+        blank=True
+    )
+    type_email = models.ForeignKey(
+        TblEmailType,
+        on_delete=models.PROTECT,  # Protection contre la suppression accidentelle
+        related_name='notifications'
+    )
+    statut = models.ForeignKey(
+        TblEmailStatus,
+        on_delete=models.PROTECT,  # Protection contre la suppression accidentelle
+        related_name='notifications'
+    )
+
+    # Contenu de l'email
+    sujet = models.CharField(max_length=100)
+    contenu = models.TextField()
+
+    # Métadonnées de l'email
+    date_creation = models.DateTimeField(default=timezone.now)
+    date_envoi = models.DateTimeField(null=True, blank=True)
+    tentatives = models.PositiveSmallIntegerField(default=0)  # Limité à 32767, amplement suffisant
+
+    # Traçabilité technique
+    email_id = models.CharField(max_length=100, null=True,
+                                blank=True)  # ID unique du message chez le prestataire d'envoi
+
+    class Meta:
+        db_table = 'TblEmailNotification'
+        ordering = ['-date_creation']
+        verbose_name = "Notification par email"
+        verbose_name_plural = "Notifications par email"
+
+    def __str__(self):
+        return f"{self.type_email} à {self.destinataire.email} ({self.statut})"
 
 

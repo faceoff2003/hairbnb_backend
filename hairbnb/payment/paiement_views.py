@@ -8,8 +8,12 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 import stripe
 import traceback
 
-from hairbnb.models import TblRendezVous, TblPaiement, TblPaiementStatut, TblMethodePaiement, TblRendezVousService
-from hairbnb.payment.paiement_serializer import PaiementDetailSerializer
+from stripe import InvalidRequestError
+
+from decorators.decorators import firebase_authenticated
+from hairbnb.models import TblRendezVous, TblPaiement, TblPaiementStatut, TblMethodePaiement, TblRendezVousService, \
+    TblTransaction
+from hairbnb.payment.paiement_serializer import PaiementDetailSerializer, RefundSerializer
 from hairbnb_backend import settings_test
 
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
@@ -371,6 +375,74 @@ def paiement_success(request):
     """
 
     return HttpResponse(html_response)
+
+
+# views/refund_view.py
+
+@api_view(['POST'])
+@firebase_authenticated
+def rembourser_paiement(request):
+    serializer = RefundSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+
+    data = serializer.validated_data
+    id_paiement = data['id_paiement']
+    montant = data.get('montant', None)
+
+    try:
+        paiement = TblPaiement.objects.get(idTblPaiement=id_paiement)
+    except TblPaiement.DoesNotExist:
+        return Response({"error": "Paiement introuvable"}, status=404)
+
+    if not paiement.stripe_charge_id:
+        return Response({"error": "Aucun identifiant de charge Stripe trouvé pour ce paiement."}, status=400)
+
+    try:
+        refund = stripe.Refund.create(
+            charge=paiement.stripe_charge_id,
+            amount=int(montant * 100) if montant else None
+        )
+
+        # 🔄 Création de la transaction
+        TblTransaction.objects.create(
+            paiement=paiement,
+            type='remboursement',
+            montant=montant or paiement.montant_paye,
+            statut='effectué'
+        )
+
+        # ✅ Mise à jour du statut de paiement
+        statut_rembourse = TblPaiementStatut.objects.get(code='remboursé')
+        paiement.statut = statut_rembourse
+        paiement.save()
+
+        return Response({
+            "message": "Remboursement effectué avec succès",
+            "refund_id": refund.id
+        })
+
+    except InvalidRequestError as e:
+        return Response({"error": str(e)}, status=400)
+
+
+@api_view(['GET'])
+@firebase_authenticated
+def paiement_info(request, id_rendez_vous):
+    try:
+        paiement = TblPaiement.objects.filter(rendez_vous_id=id_rendez_vous).first()
+        if paiement:
+            return Response({
+                'idTblPaiement': paiement.idTblPaiement,
+                'montant_paye': float(paiement.montant_paye),
+                'statut': paiement.statut.code,
+                'stripe_payment_intent_id': paiement.stripe_payment_intent_id,
+                'stripe_charge_id': paiement.stripe_charge_id,
+            })
+        return Response({"error": "Aucun paiement trouvé pour ce rendez-vous"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
 
 # -------------------------------------------Premiére essai fonctionnelle------------------------------
 

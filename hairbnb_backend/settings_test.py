@@ -71,16 +71,31 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET","whsec_Q10G900SvmGxCqm
 
 
 
-# Configuration pour le stockage local pour les photos de profil
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-#
-# STATICFILES_DIRS = [
-#     os.path.join(BASE_DIR, 'static'),
-# ]
-#
-# STATIC_URL = '/static/'
-# MEDIA_URL = '/media/'
+# Configuration des emails
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.hairbnb.site'
+EMAIL_PORT = 465  # Port SSL
+EMAIL_USE_SSL = True  # Utiliser SSL au lieu de TLS
+EMAIL_HOST_USER = 'noreply@hairbnb.site'
+EMAIL_HOST_PASSWORD = '**Time1990**'  # À définir dans les variables d'environnement pour la sécurité
+DEFAULT_FROM_EMAIL = 'HairBnB <noreply@hairbnb.site>'
+
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Assurez-vous que cette ligne est présente
+        'APP_DIRS': True,  # Ceci doit être True pour que Django cherche dans les dossiers templates des applications
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 
 # Application definition
@@ -138,23 +153,23 @@ FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase_auth_services/fireb
 
 ROOT_URLCONF = 'hairbnb_backend.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        #'DIRS': [BASE_DIR / 'templates']
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         #'DIRS': [BASE_DIR / 'templates']
+#         'DIRS': [os.path.join(BASE_DIR, 'templates')]
+#         ,
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
 
 WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 
@@ -271,6 +286,54 @@ CORS_ALLOW_HEADERS = [  # Autoriser les en-têtes courants
     "Content-Type",
     "X-CSRFToken",
 ]
+
+
+# import os
+#
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#
+#     'formatters': {
+#         'verbose': {
+#             'format': '[{asctime}] {levelname} {name} — {message}',
+#             'style': '{',
+#         },
+#         'geoip': {
+#             'format': '[%(asctime)s] [%(levelname)s] [%(ip)s] %(message)s',
+#         },
+#     },
+#
+#     'handlers': {
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose',
+#         },
+#         'geoip_file': {
+#             'level': 'INFO',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logs', 'geoip_blocked.log'),
+#             'formatter': 'geoip',
+#         },
+#     },
+#
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console'],
+#             'level': 'DEBUG',  # 🔥 Tu peux remettre à INFO en production
+#             'propagate': True,
+#         },
+#         'geoip_blocker': {
+#             'handlers': ['geoip_file'],
+#             'level': 'INFO',
+#             'propagate': False,
+#         },
+#         '__main__': {  # Pour les erreurs dans tes fichiers comme email_views.py
+#             'handlers': ['console'],
+#             'level': 'DEBUG',
+#         },
+#     },
+# }
 
 
 LOGGING = {

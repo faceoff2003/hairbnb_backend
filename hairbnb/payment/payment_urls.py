@@ -1,7 +1,7 @@
 from django.urls import path
 
 from hairbnb.payment import paiement_views
-from hairbnb.payment.paiement_views import stripe_webhook
+from hairbnb.payment.paiement_views import stripe_webhook, rembourser_paiement, paiement_info
 
 urlpatterns = [
     # 🎯 Création de la session de paiement Stripe
@@ -18,4 +18,10 @@ urlpatterns = [
 
     # ❌ Erreur de paiement
     path('paiement-error/', paiement_views.paiement_error, name='paiement_error'),
+
+    # 🔄 Rembourser un paiement
+    path('remboursement/', rembourser_paiement, name='remboursement-stripe'),
+
+    # 🔎 Informations sur un paiement
+    path('paiement-info/<int:id_rendez_vous>/', paiement_info, name='paiement_info'),
 ]

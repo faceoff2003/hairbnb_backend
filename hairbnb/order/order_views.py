@@ -45,7 +45,7 @@ def mes_commandes(request, idUser):
         return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@firebase_authenticated
+#@firebase_authenticated
 @api_view(['GET'])
 def commandes_coiffeuse(request, idUser):
     """

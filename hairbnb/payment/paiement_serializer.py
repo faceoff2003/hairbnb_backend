@@ -40,6 +40,7 @@ class PaiementSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from hairbnb.models import TblPaiement, TblPaiementStatut, TblMethodePaiement, TblRendezVous, TblUser
 
+
 class PaiementCreateSerializer(serializers.ModelSerializer):
     rendez_vous_id = serializers.IntegerField(write_only=True)
     utilisateur_id = serializers.IntegerField(write_only=True)
@@ -80,8 +81,10 @@ class PaiementCreateSerializer(serializers.ModelSerializer):
             **validated_data
         )
 
+
 from rest_framework import serializers
 from hairbnb.models import TblPaiement, TblPaiementStatut, TblMethodePaiement, TblRendezVous, TblUser
+
 
 class PaiementStatutNestedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -116,4 +119,13 @@ class PaiementDetailSerializer(serializers.ModelSerializer):
             'email_client',
             'receipt_url'
         ]
+
+
+class RefundSerializer(serializers.Serializer):
+    id_paiement = serializers.IntegerField(required=True)
+    montant = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False,
+        help_text="Montant à rembourser (laisser vide pour remboursement total)"
+    )
+
 
