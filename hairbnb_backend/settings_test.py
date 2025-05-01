@@ -111,6 +111,7 @@ MIDDLEWARE = [
     'middleware.country_restriction.CountryRestrictionMiddleware',
     'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
     'middleware.bypass_csrf_middleware.BypassCSRFMiddleware',
+    'middleware.block_malicious_requests_middleware.BlockMaliciousRequestsMiddleware',
 ]
 
 
