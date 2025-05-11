@@ -40,28 +40,3 @@ def is_owner(param_name="idUser"):
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     return decorator
-
-
-# def is_owner(param_name="idUser"):
-#     """
-#     Décorateur qui vérifie si l'utilisateur est propriétaire de l'objet associé
-#     au paramètre passé en argument.
-#     Si l'utilisateur n'est pas propriétaire, renvoie une réponse 403.
-#     """
-#     def decorator(view_func):
-#         @wraps(view_func)
-#         def _wrapped_view(request, *args, **kwargs):
-#             user = request.user
-#             id_param = kwargs.get(param_name)
-#
-#             #-------------------------------------------------------------------
-#             print("🎯 USER CONNECTÉ :", user.idTblUser)
-#             print("📥 PARAM ID     :", id_param)
-#             # -------------------------------------------------------------------
-#
-#             if not user or str(user.idTblUser) != str(id_param):
-#                 return Response({"detail": "Accès interdit (non propriétaire)."}, status=403)
-#
-#             return view_func(request, *args, **kwargs)
-#         return _wrapped_view
-#     return decorator

@@ -1,17 +1,18 @@
 from django.contrib import admin
 from hairbnb.models import (
-    TblLocalite, TblRue, TblAdresse, TblUser, TblCoiffeuse, TblClient,
+    TblLocalite, TblRue, TblAdresse, TblCoiffeuse, TblClient,
     TblSalon, TblService, TblPrix, TblTemps, TblSalonService,
     TblServicePrix, TblServiceTemps, TblCart, TblCartItem,
     TblPromotion, TblRendezVous, TblPaiement, TblRendezVousService,
     TblIndisponibilite, TblHoraireCoiffeuse, TblSalonImage, TblAvis, TblFavorite, TblTransaction, TblPaiementStatut,
-    TblMethodePaiement, TblEmailNotification, TblEmailType, TblEmailStatus
+    TblMethodePaiement, TblEmailNotification, TblEmailType, TblEmailStatus, TblUser, TblRole, AIConversation, AIMessage
 )
 
 admin.site.register(TblLocalite)
 admin.site.register(TblRue)
 admin.site.register(TblAdresse)
 admin.site.register(TblUser)
+admin.site.register(TblRole)
 admin.site.register(TblCoiffeuse)
 admin.site.register(TblClient)
 admin.site.register(TblSalon)
@@ -38,3 +39,6 @@ admin.site.register(TblMethodePaiement)    # ✅ méthode de paiement
 admin.site.register(TblEmailNotification)
 admin.site.register(TblEmailType)
 admin.site.register(TblEmailStatus)
+admin.site.register(AIConversation)
+admin.site.register(AIMessage)
+

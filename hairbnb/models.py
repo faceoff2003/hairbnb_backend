@@ -6,6 +6,7 @@ from decimal import Decimal
 from hairbnb.services.validators import validate_max_images
 from django.contrib.auth.models import User
 
+
 # Table pour gérer les localités
 class TblLocalite(models.Model):
     idTblLocalite = models.AutoField(primary_key=True)
@@ -43,43 +44,93 @@ class TblAdresse(models.Model):
     def __str__(self):
         return f"{self.numero}, {self.boite_postale or ''}, {self.rue.nom_rue}, {self.rue.localite.commune}"
 
+    # Table utilisateur de base
+    # class TblUser(models.Model):
+    #     idTblUser = models.AutoField(primary_key=True)
+    #     uuid = models.CharField(max_length=255, unique=True)
+    #     nom = models.CharField(max_length=255)
+    #     prenom = models.CharField(max_length=255)
+    #     email = models.EmailField(unique=True)
+    #     type = models.CharField(
+    #         max_length=10,
+    #         choices=[('coiffeuse', 'Coiffeuse'), ('client', 'Client')]
+    #     )
+    #     sexe = models.CharField(
+    #         max_length=6,
+    #         choices=[('homme', 'Homme'), ('femme', 'Femme'), ('autre', 'Autre')]
+    #     )
+    #     numero_telephone = models.CharField(max_length=15)
+    #     date_naissance = models.DateField(null=True, blank=True)
+    #     is_active = models.BooleanField(default=True)
+    #     adresse = models.ForeignKey(
+    #         'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
+    #     )
+    #     photo_profil = models.ImageField(
+    #         upload_to='photos/profils/',
+    #         null=True,
+    #         blank=True,
+    #         default='photos/defaults/avatar.png'  # Avatar par défaut
+    #     )
+    #
+    #     def __str__(self):
+    #         return f"{self.nom} {self.prenom} ({self.type})"
 
-# Table utilisateur de base
 class TblUser(models.Model):
-    idTblUser = models.AutoField(primary_key=True)
-    uuid = models.CharField(max_length=255, unique=True)
-    nom = models.CharField(max_length=255)
-    prenom = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
-    type = models.CharField(
-        max_length=10,
-        choices=[('coiffeuse', 'Coiffeuse'), ('client', 'Client')]
-    )
-    sexe = models.CharField(
-        max_length=6,
-        choices=[('homme', 'Homme'), ('femme', 'Femme'), ('autre', 'Autre')]
-    )
-    numero_telephone = models.CharField(max_length=15)
-    date_naissance = models.DateField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    adresse = models.ForeignKey(
-        'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
-    )
-    photo_profil = models.ImageField(
-        upload_to='photos/profils/',
-        null=True,
-        blank=True,
-        default='photos/defaults/avatar.png'  # Avatar par défaut
-    )
+        idTblUser = models.AutoField(primary_key=True)
+        uuid = models.CharField(max_length=255, unique=True)
+        nom = models.CharField(max_length=255)
+        prenom = models.CharField(max_length=255)
+        email = models.EmailField(unique=True)
+        type = models.CharField(
+            max_length=10,
+            choices=[('coiffeuse', 'Coiffeuse'), ('client', 'Client')]
+        )
+        sexe = models.CharField(
+            max_length=6,
+            choices=[('homme', 'Homme'), ('femme', 'Femme'), ('autre', 'Autre')]
+        )
+        numero_telephone = models.CharField(max_length=15)
+        date_naissance = models.DateField(null=True, blank=True)
+        is_active = models.BooleanField(default=True)
+        adresse = models.ForeignKey(
+            'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
+        )
+        photo_profil = models.ImageField(
+            upload_to='photos/profils/',
+            null=True,
+            blank=True,
+            default='photos/defaults/avatar.png'
+        )
+
+        # ✅ Ajout de la clé étrangère vers TblRole
+        role = models.ForeignKey(
+            'TblRole',  # 💡 entre guillemets !
+            on_delete=models.SET_NULL,
+            null=True,
+            default=1,
+            related_name='utilisateurs')
+
+
+def get_role(self):
+    return self.role.nom if self.role else 'user'  # Valeur par défaut logique
+
+
+def __str__(self):
+    return f"{self.nom} {self.prenom} ({self.type} - {self.get_role()})"
+
+
+class TblRole(models.Model):
+    idTblRole = models.AutoField(primary_key=True)
+    nom = models.CharField(max_length=50, unique=True)  # Exemple: "admin", "user"
 
     def __str__(self):
-        return f"{self.nom} {self.prenom} ({self.type})"
+        return self.nom
 
 
 # Table pour les coiffeuses
 class TblCoiffeuse(models.Model):
     idTblUser = models.OneToOneField(
-        TblUser, on_delete=models.CASCADE, related_name='coiffeuse'
+        'TblUser', on_delete=models.CASCADE, related_name='coiffeuse'
     )
     denomination_sociale = models.CharField(max_length=255, blank=True, null=True)
     tva = models.CharField(max_length=20, blank=True, null=True)
@@ -92,10 +143,11 @@ class TblCoiffeuse(models.Model):
     def __str__(self):
         return f"Coiffeuse: {self.idTblUser.nom} {self.idTblUser.prenom}"
 
+
 # Table pour les clients
 class TblClient(models.Model):
     idTblUser = models.ForeignKey(
-        TblUser,
+        'TblUser',
         on_delete=models.CASCADE,
         related_name='clients',
         db_column='idTblUser'
@@ -104,6 +156,7 @@ class TblClient(models.Model):
     class Meta:
         verbose_name = "Client"
         verbose_name_plural = "Clients"
+
 
 # Table pour gérer les temps
 class TblTemps(models.Model):
@@ -133,6 +186,7 @@ class TblService(models.Model):
     idTblService = models.AutoField(primary_key=True)
     intitule_service = models.CharField(max_length=100)
     description = models.TextField(validators=[MaxLengthValidator(600)])
+
     # description = models.TextField()
 
     def __str__(self):
@@ -146,7 +200,7 @@ class TblSalon(models.Model):
     )
     nom_salon = models.CharField(max_length=30)
     slogan = models.CharField(max_length=40, blank=True, null=True)
-    a_propos = models.TextField(max_length=700,blank=True, null=True)  # Nouveau champ pour la description détaillée
+    a_propos = models.TextField(max_length=700, blank=True, null=True)  # Nouveau champ pour la description détaillée
     logo_salon = models.ImageField(
         upload_to='photos/logos/',
         null=True,
@@ -160,10 +214,10 @@ class TblSalon(models.Model):
     def __str__(self):
         return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
 
-#------------------------------------TblSalonImage---------------------------------------
+
+# ------------------------------------TblSalonImage---------------------------------------
 
 class TblSalonImage(models.Model):
-
     salon = models.ForeignKey(
         TblSalon,
         on_delete=models.CASCADE,
@@ -185,7 +239,7 @@ class TblSalonImage(models.Model):
         super().save(*args, **kwargs)
 
 
-#------------------------------------TblAvis---------------------------------------
+# ------------------------------------TblAvis---------------------------------------
 
 class TblAvis(models.Model):
     salon = models.ForeignKey(TblSalon, on_delete=models.CASCADE, related_name='avis')
@@ -199,7 +253,6 @@ class TblAvis(models.Model):
         return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon}"
 
 
-
 # Table de jonction pour relier les salons et les services
 class TblSalonService(models.Model):
     idSalonService = models.AutoField(primary_key=True)
@@ -211,6 +264,7 @@ class TblSalonService(models.Model):
 
     def __str__(self):
         return f"Service '{self.service.intitule_service}' pour le salon '{self.salon.coiffeuse.idTblUser.nom}'"
+
 
 class TblServiceTemps(models.Model):
     idServiceTemps = models.AutoField(primary_key=True)
@@ -248,7 +302,7 @@ class TblServicePrix(models.Model):
 class TblCart(models.Model):
     idTblCart = models.AutoField(primary_key=True)
     user = models.OneToOneField(
-        TblUser, on_delete=models.CASCADE, related_name="cart"
+        'TblUser', on_delete=models.CASCADE, related_name="cart"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -282,6 +336,7 @@ class TblCartItem(models.Model):
     class Meta:
         unique_together = ('cart', 'service')  # ✅ Un même service ne peut pas être ajouté plusieurs fois
 
+
 class TblPromotion(models.Model):
     idPromotion = models.AutoField(primary_key=True)
     service = models.ForeignKey('TblService', on_delete=models.CASCADE, related_name="promotions")
@@ -304,6 +359,7 @@ class TblPromotion(models.Model):
     def __str__(self):
         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
 
+
 class TblRendezVous(models.Model):
     idRendezVous = models.AutoField(primary_key=True)
     client = models.ForeignKey('TblClient', on_delete=models.CASCADE, related_name='rendez_vous')
@@ -318,7 +374,6 @@ class TblRendezVous(models.Model):
     total_prix = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     duree_totale = models.PositiveIntegerField(blank=True, null=True)  # ✅ Durée totale du RDV en minutes
     est_archive = models.BooleanField(default=False)
-
 
     def calculer_total(self):
         """ Calcule le prix total et la durée totale du RDV en fonction des services choisis """
@@ -394,11 +449,12 @@ class TblPaiementStatut(models.Model):
     - remboursé → Remboursé
     """
     idTblPaiementStatut = models.AutoField(primary_key=True)
-    code = models.CharField(max_length=50, unique=True)      # ex: 'payé'
-    libelle = models.CharField(max_length=100)               # ex: 'Payé'
+    code = models.CharField(max_length=50, unique=True)  # ex: 'payé'
+    libelle = models.CharField(max_length=100)  # ex: 'Payé'
 
     def __str__(self):
         return self.libelle
+
 
 class TblMethodePaiement(models.Model):
     """
@@ -409,8 +465,8 @@ class TblMethodePaiement(models.Model):
     - apple_pay → Apple Pay
     """
     idTblMethodePaiement = models.AutoField(primary_key=True)
-    code = models.CharField(max_length=50, unique=True)      # ex: 'card'
-    libelle = models.CharField(max_length=100)               # ex: 'Carte Bancaire'
+    code = models.CharField(max_length=50, unique=True)  # ex: 'card'
+    libelle = models.CharField(max_length=100)  # ex: 'Carte Bancaire'
 
     def __str__(self):
         return self.libelle
@@ -430,7 +486,7 @@ class TblPaiement(models.Model):
     rendez_vous = models.ForeignKey('TblRendezVous', on_delete=models.CASCADE)
 
     # 🔗 Lien vers l'utilisateur
-    utilisateur = models.ForeignKey('TblUser', on_delete=models.CASCADE,null=True,blank=True)
+    utilisateur = models.ForeignKey('TblUser', on_delete=models.CASCADE, null=True, blank=True)
 
     # 💰 Montant payé en euros
     montant_paye = models.DecimalField(max_digits=10, decimal_places=2)
@@ -458,6 +514,7 @@ class TblPaiement(models.Model):
 
     def __str__(self):
         return f"Paiement de {self.montant_paye}€ pour le RDV #{self.rendez_vous.idRendezVous} — {self.statut.libelle}"
+
 
 class TblTransaction(models.Model):
     """
@@ -528,7 +585,8 @@ class TblTransaction(models.Model):
 
 class TblHoraireCoiffeuse(models.Model):
     coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='horaires')
-    jour = models.IntegerField(choices=[(i, ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][i]) for i in range(7)])
+    jour = models.IntegerField(
+        choices=[(i, ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][i]) for i in range(7)])
     heure_debut = models.TimeField()
     heure_fin = models.TimeField()
 
@@ -550,10 +608,11 @@ class TblIndisponibilite(models.Model):
     def __str__(self):
         return f"{self.date} de {self.heure_debut} à {self.heure_fin} (motif: {self.motif})"
 
+
 class TblFavorite(models.Model):
     idTblFavorite = models.AutoField(primary_key=True)
     user = models.ForeignKey(
-        TblUser,
+        'TblUser',
         on_delete=models.CASCADE,
         related_name='favorites'
     )
@@ -651,3 +710,37 @@ class TblEmailNotification(models.Model):
         return f"{self.type_email} à {self.destinataire.email} ({self.statut})"
 
 
+# Modèles optimisés pour l'agent IA Claude (économie de tokens)
+class AIConversation(models.Model):
+    user = models.ForeignKey('TblUser', on_delete=models.CASCADE, related_name='ai_conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Champ pour stocker le contexte de la conversation (métadonnées, préférences)
+    # Stocké au format JSON pour éviter de le recalculer à chaque message
+    context_cache = models.JSONField(null=True, blank=True)
+
+    # Nombre total de tokens utilisés pour cette conversation (pour le suivi des coûts)
+    tokens_used = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"Conversation #{self.id} - {self.user.prenom}"
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class AIMessage(models.Model):
+    conversation = models.ForeignKey(AIConversation, on_delete=models.CASCADE, related_name='messages')
+    content = models.TextField()
+    is_user = models.BooleanField(default=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    # Champs pour suivre l'utilisation des tokens
+    tokens_in = models.PositiveIntegerField(default=0)  # Tokens en entrée
+    tokens_out = models.PositiveIntegerField(default=0)  # Tokens en sortie
+
+    # Champ optionnel pour stocker des données spécifiques (like entités reconnues)
+    metadata = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['timestamp']

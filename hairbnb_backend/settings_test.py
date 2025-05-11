@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -109,6 +110,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'hairbnb.apps.HairbnbConfig',
     'corsheaders',
+    'rest_framework',
 
 ]
 
@@ -179,6 +181,7 @@ WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 
 # ✅ Ligne pour forcer l'encodage en UTF-8
 DEFAULT_CHARSET = 'utf-8'
+FILE_CHARSET = 'utf-8'
 
 DATABASES = {
     'default': {
@@ -189,6 +192,9 @@ DATABASES = {
         'PASSWORD': 'Soul2003',
         'HOST': 'localhost',
         'PORT': '5432',
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
 }
 
@@ -199,6 +205,8 @@ DATABASES = {
 #         ssl_require=True
 #     )
 # }
+
+ANTHROPIC_API_KEY = "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"
 
 
 
@@ -286,6 +294,7 @@ CORS_ALLOW_HEADERS = [  # Autoriser les en-têtes courants
     "Content-Type",
     "X-CSRFToken",
 ]
+
 
 
 # import os
