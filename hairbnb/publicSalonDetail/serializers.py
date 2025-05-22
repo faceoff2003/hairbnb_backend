@@ -2,14 +2,16 @@ from rest_framework import serializers
 from django.utils.timezone import now
 from hairbnb.models import (
     TblUser, TblCoiffeuse, TblService, TblSalonImage,
-    TblAvis, TblSalon, TblPromotion
+    TblAvis, TblSalon, TblPromotion, TblHoraireCoiffeuse,
+    TblSalonService, TblCoiffeuseSalon
 )
+
 
 # Serializer utilisateur
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = TblUser
-        fields = ['idTblUser','nom', 'prenom', 'photo_profil', 'numero_telephone']
+        fields = ['idTblUser', 'nom', 'prenom', 'photo_profil', 'numero_telephone']
 
 
 # Serializer coiffeuse
@@ -18,7 +20,7 @@ class CoiffeuseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TblCoiffeuse
-        fields = ['idTblUser', 'denomination_sociale', 'position']
+        fields = ['idTblUser', 'nom_commercial']
 
 
 # Serializer images du salon
@@ -38,7 +40,7 @@ class AvisSerializer(serializers.ModelSerializer):
         fields = ['note', 'commentaire', 'client_nom', 'date_format']
 
     def get_client_nom(self, obj):
-        if obj.client:
+        if obj.client and hasattr(obj.client, 'idTblUser'):
             return f"{obj.client.idTblUser.prenom} {obj.client.idTblUser.nom}"
         return "Anonyme"
 
@@ -61,13 +63,13 @@ class ServiceWithPromotionSerializer(serializers.ModelSerializer):
 
     def get_prix(self, obj):
         service_prix = obj.service_prix.first()
-        if service_prix:
+        if service_prix and hasattr(service_prix, 'prix'):
             return service_prix.prix.prix
         return None
 
     def get_duree(self, obj):
         service_temps = obj.service_temps.first()
-        if service_temps:
+        if service_temps and hasattr(service_temps, 'temps'):
             return service_temps.temps.minutes
         return None
 
@@ -89,7 +91,7 @@ class ServiceWithPromotionSerializer(serializers.ModelSerializer):
 
 # 🏠 Serializer principal pour le salon
 class SalonDetailSerializer(serializers.ModelSerializer):
-    coiffeuse = CoiffeuseSerializer(read_only=True)
+    coiffeuse = serializers.SerializerMethodField()
     images = SalonImageSerializer(many=True, read_only=True)
     avis = AvisSerializer(many=True, read_only=True)
     services = serializers.SerializerMethodField()
@@ -101,38 +103,56 @@ class SalonDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TblSalon
         fields = [
-            'idTblSalon', 'nom_salon', 'slogan', 'a_propos', 'logo_salon',
+            'idTblSalon', 'nom_salon', 'slogan', 'a_propos', 'logo_salon', 'position',
             'coiffeuse', 'adresse', 'horaires', 'note_moyenne', 'nombre_avis',
             'images', 'avis', 'services'
         ]
 
+    def get_coiffeuse(self, obj):
+        """
+        Récupère la coiffeuse propriétaire via la table de jonction.
+        """
+        proprietaire_relation = TblCoiffeuseSalon.objects.filter(
+            salon=obj,
+            est_proprietaire=True
+        ).first()
+
+        if proprietaire_relation and proprietaire_relation.coiffeuse:
+            return CoiffeuseSerializer(proprietaire_relation.coiffeuse).data
+        return None
+
     def get_services(self, obj):
-        services = TblService.objects.filter(salon_service__salon=obj)
+        # Récupérer les services via la relation many-to-many
+        services_relations = TblSalonService.objects.filter(salon=obj)
+        services = [relation.service for relation in services_relations]
         return ServiceWithPromotionSerializer(services, many=True).data
 
     def get_adresse(self, obj):
-        user = obj.coiffeuse.idTblUser
-        if user.adresse:
-            return f"{user.adresse.numero} {user.adresse.rue.nom_rue}, {user.adresse.rue.localite.commune}, {user.adresse.rue.localite.code_postal}"
+        # Utiliser l'adresse du salon si elle existe
+        if obj.adresse and hasattr(obj.adresse, 'rue') and hasattr(obj.adresse.rue, 'localite'):
+            return f"{obj.adresse.numero} {obj.adresse.rue.nom_rue}, {obj.adresse.rue.localite.commune}, {obj.adresse.rue.localite.code_postal}"
         return None
 
     def get_horaires(self, obj):
-        horaires = obj.coiffeuse.horaires.all().order_by('jour')
-        if horaires:
-            jours = {
-                0: "Mon", 1: "Tue", 2: "Wed",
-                3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
-            }
-            return ", ".join(
-                f"{h.heure_debut.strftime('%I:%M %p')} - {h.heure_fin.strftime('%I:%M %p')} / {jours[h.jour]}"
-                for h in horaires
-            )
+        # Récupérer les horaires de la coiffeuse propriétaire
+        proprietaire = obj.get_proprietaire()
+        if proprietaire:
+            horaires = TblHoraireCoiffeuse.objects.filter(coiffeuse=proprietaire).order_by('jour')
+            if horaires.exists():
+                jours = {
+                    0: "Mon", 1: "Tue", 2: "Wed",
+                    3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
+                }
+                return ", ".join(
+                    f"{h.heure_debut.strftime('%I:%M %p')} - {h.heure_fin.strftime('%I:%M %p')} / {jours[h.jour]}"
+                    for h in horaires
+                )
         return "10:00 AM - 6:00 PM / Mon - Fri"
 
     def get_note_moyenne(self, obj):
         avis = obj.avis.all()
-        if avis:
-            return round(sum(a.note for a in avis) / len(avis), 1)
+        if avis.exists():
+            return round(sum(a.note for a in avis) / avis.count(), 1)
         return 0
 
     def get_nombre_avis(self, obj):
@@ -143,20 +163,172 @@ class SalonDetailSerializer(serializers.ModelSerializer):
 
 
 
-
 # from rest_framework import serializers
+# from django.utils.timezone import now
+# from hairbnb.models import (
+#     TblUser, TblCoiffeuse, TblService, TblSalonImage,
+#     TblAvis, TblSalon, TblPromotion, TblHoraireCoiffeuse,
+#     TblSalonService
+# )
 #
-# from hairbnb.models import TblUser, TblCoiffeuse, TblPrix, TblTemps, TblService, TblSalonImage, TblAvis, TblSalon
 #
-#
-# # Serializer pour l'utilisateur (informations de base)
+# # Serializer utilisateur
 # class UserSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model = TblUser
-#         fields = ['nom', 'prenom', 'photo_profil', 'numero_telephone']
+#         fields = ['idTblUser', 'nom', 'prenom', 'photo_profil', 'numero_telephone']
 #
 #
-# # Serializer pour la coiffeuse
+# # Serializer coiffeuse
+# class CoiffeuseSerializer(serializers.ModelSerializer):
+#     idTblUser = UserSerializer(read_only=True)
+#
+#     class Meta:
+#         model = TblCoiffeuse
+#         fields = ['idTblUser', 'nom_commercial']
+#
+#
+# # Serializer images du salon
+# class SalonImageSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = TblSalonImage
+#         fields = ['id', 'image']
+#
+#
+# # Serializer avis clients
+# class AvisSerializer(serializers.ModelSerializer):
+#     client_nom = serializers.SerializerMethodField()
+#     date_format = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = TblAvis
+#         fields = ['note', 'commentaire', 'client_nom', 'date_format']
+#
+#     def get_client_nom(self, obj):
+#         if obj.client and hasattr(obj.client, 'idTblUser'):
+#             return f"{obj.client.idTblUser.prenom} {obj.client.idTblUser.nom}"
+#         return "Anonyme"
+#
+#     def get_date_format(self, obj):
+#         return "about a year ago"  # à adapter selon le contexte
+#
+#
+# # 🔁 Serializer pour les services avec promotion active
+# class ServiceWithPromotionSerializer(serializers.ModelSerializer):
+#     prix = serializers.SerializerMethodField()
+#     duree = serializers.SerializerMethodField()
+#     promotion_active = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = TblService
+#         fields = [
+#             'idTblService', 'intitule_service', 'description',
+#             'prix', 'duree', 'promotion_active'
+#         ]
+#
+#     def get_prix(self, obj):
+#         service_prix = obj.service_prix.first()
+#         if service_prix and hasattr(service_prix, 'prix'):
+#             return service_prix.prix.prix
+#         return None
+#
+#     def get_duree(self, obj):
+#         service_temps = obj.service_temps.first()
+#         if service_temps and hasattr(service_temps, 'temps'):
+#             return service_temps.temps.minutes
+#         return None
+#
+#     def get_promotion_active(self, service):
+#         promotion = TblPromotion.objects.filter(
+#             service=service,
+#             start_date__lte=now(),
+#             end_date__gte=now()
+#         ).first()
+#
+#         if promotion:
+#             return {
+#                 "discount_percentage": str(promotion.discount_percentage),
+#                 "start_date": promotion.start_date,
+#                 "end_date": promotion.end_date
+#             }
+#         return None
+#
+#
+# # 🏠 Serializer principal pour le salon
+# class SalonDetailSerializer(serializers.ModelSerializer):
+#     coiffeuse = CoiffeuseSerializer(read_only=True)
+#     images = SalonImageSerializer(many=True, read_only=True)
+#     avis = AvisSerializer(many=True, read_only=True)
+#     services = serializers.SerializerMethodField()
+#     adresse = serializers.SerializerMethodField()
+#     horaires = serializers.SerializerMethodField()
+#     note_moyenne = serializers.SerializerMethodField()
+#     nombre_avis = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = TblSalon
+#         fields = [
+#             'idTblSalon', 'nom_salon', 'slogan', 'a_propos', 'logo_salon', 'position',
+#             'coiffeuse', 'adresse', 'horaires', 'note_moyenne', 'nombre_avis',
+#             'images', 'avis', 'services'
+#         ]
+#
+#     def get_services(self, obj):
+#         # Récupérer les services via la relation many-to-many
+#         services_relations = TblSalonService.objects.filter(salon=obj)
+#         services = [relation.service for relation in services_relations]
+#         return ServiceWithPromotionSerializer(services, many=True).data
+#
+#     def get_adresse(self, obj):
+#         # Utiliser l'adresse du salon si elle existe
+#         if obj.adresse and hasattr(obj.adresse, 'rue') and hasattr(obj.adresse.rue, 'localite'):
+#             return f"{obj.adresse.numero} {obj.adresse.rue.nom_rue}, {obj.adresse.rue.localite.commune}, {obj.adresse.rue.localite.code_postal}"
+#         return None
+#
+#     def get_horaires(self, obj):
+#         # Récupérer les horaires de la coiffeuse associée au salon
+#         if hasattr(obj, 'coiffeuse') and obj.coiffeuse:
+#             horaires = TblHoraireCoiffeuse.objects.filter(coiffeuse=obj.coiffeuse).order_by('jour')
+#             if horaires.exists():
+#                 jours = {
+#                     0: "Mon", 1: "Tue", 2: "Wed",
+#                     3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
+#                 }
+#                 return ", ".join(
+#                     f"{h.heure_debut.strftime('%I:%M %p')} - {h.heure_fin.strftime('%I:%M %p')} / {jours[h.jour]}"
+#                     for h in horaires
+#                 )
+#         return "10:00 AM - 6:00 PM / Mon - Fri"
+#
+#     def get_note_moyenne(self, obj):
+#         avis = obj.avis.all()
+#         if avis.exists():
+#             return round(sum(a.note for a in avis) / avis.count(), 1)
+#         return 0
+#
+#     def get_nombre_avis(self, obj):
+#         return obj.avis.count()
+
+
+
+
+
+
+# from rest_framework import serializers
+# from django.utils.timezone import now
+# from hairbnb.models import (
+#     TblUser, TblCoiffeuse, TblService, TblSalonImage,
+#     TblAvis, TblSalon, TblPromotion
+# )
+#
+# # Serializer utilisateur
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = TblUser
+#         fields = ['idTblUser','nom', 'prenom', 'photo_profil', 'numero_telephone']
+#
+#
+# # Serializer coiffeuse
 # class CoiffeuseSerializer(serializers.ModelSerializer):
 #     idTblUser = UserSerializer(read_only=True)
 #
@@ -165,50 +337,14 @@ class SalonDetailSerializer(serializers.ModelSerializer):
 #         fields = ['idTblUser', 'denomination_sociale', 'position']
 #
 #
-# # Serializer pour les prix des services
-# class PrixSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = TblPrix
-#         fields = ['prix']
-#
-#
-# # Serializer pour les temps des services
-# class TempsSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = TblTemps
-#         fields = ['minutes']
-#
-#
-# # Serializer pour les services avec prix et durée
-# class ServiceDetailSerializer(serializers.ModelSerializer):
-#     prix = serializers.SerializerMethodField()
-#     duree = serializers.SerializerMethodField()
-#
-#     class Meta:
-#         model = TblService
-#         fields = ['idTblService', 'intitule_service', 'description', 'prix', 'duree']
-#
-#     def get_prix(self, obj):
-#         service_prix = obj.service_prix.first()
-#         if service_prix:
-#             return service_prix.prix.prix
-#         return None
-#
-#     def get_duree(self, obj):
-#         service_temps = obj.service_temps.first()
-#         if service_temps:
-#             return service_temps.temps.minutes
-#         return None
-#
-#
-# # Serializer pour les images du salon
+# # Serializer images du salon
 # class SalonImageSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model = TblSalonImage
-#         fields = ['image']
+#         fields = ['id', 'image']
 #
 #
-# # Serializer pour les avis clients
+# # Serializer avis clients
 # class AvisSerializer(serializers.ModelSerializer):
 #     client_nom = serializers.SerializerMethodField()
 #     date_format = serializers.SerializerMethodField()
@@ -223,11 +359,51 @@ class SalonDetailSerializer(serializers.ModelSerializer):
 #         return "Anonyme"
 #
 #     def get_date_format(self, obj):
-#         # Formater la date comme "about a year ago"
-#         return "about a year ago"  # À personnaliser selon vos besoins
+#         return "about a year ago"
 #
 #
-# # Serializer principal pour le salon (avec toutes les infos nécessaires)
+# # 🔁 Serializer pour les services avec promotion active
+# class ServiceWithPromotionSerializer(serializers.ModelSerializer):
+#     prix = serializers.SerializerMethodField()
+#     duree = serializers.SerializerMethodField()
+#     promotion_active = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = TblService
+#         fields = [
+#             'idTblService', 'intitule_service', 'description',
+#             'prix', 'duree', 'promotion_active'
+#         ]
+#
+#     def get_prix(self, obj):
+#         service_prix = obj.service_prix.first()
+#         if service_prix:
+#             return service_prix.prix.prix
+#         return None
+#
+#     def get_duree(self, obj):
+#         service_temps = obj.service_temps.first()
+#         if service_temps:
+#             return service_temps.temps.minutes
+#         return None
+#
+#     def get_promotion_active(self, service):
+#         promotion = TblPromotion.objects.filter(
+#             service=service,
+#             start_date__lte=now(),
+#             end_date__gte=now()
+#         ).first()
+#
+#         if promotion:
+#             return {
+#                 "discount_percentage": str(promotion.discount_percentage),
+#                 "start_date": promotion.start_date,
+#                 "end_date": promotion.end_date
+#             }
+#         return None
+#
+#
+# # 🏠 Serializer principal pour le salon
 # class SalonDetailSerializer(serializers.ModelSerializer):
 #     coiffeuse = CoiffeuseSerializer(read_only=True)
 #     images = SalonImageSerializer(many=True, read_only=True)
@@ -247,40 +423,33 @@ class SalonDetailSerializer(serializers.ModelSerializer):
 #         ]
 #
 #     def get_services(self, obj):
-#         # Récupérer les services liés à ce salon via la table de jointure
 #         services = TblService.objects.filter(salon_service__salon=obj)
-#         return ServiceDetailSerializer(services, many=True).data
+#         return ServiceWithPromotionSerializer(services, many=True).data
 #
 #     def get_adresse(self, obj):
-#         # Récupérer l'adresse de la coiffeuse
 #         user = obj.coiffeuse.idTblUser
 #         if user.adresse:
 #             return f"{user.adresse.numero} {user.adresse.rue.nom_rue}, {user.adresse.rue.localite.commune}, {user.adresse.rue.localite.code_postal}"
 #         return None
 #
 #     def get_horaires(self, obj):
-#         # Récupérer les horaires formatés depuis TblHoraireCoiffeuse
 #         horaires = obj.coiffeuse.horaires.all().order_by('jour')
 #         if horaires:
 #             jours = {
 #                 0: "Mon", 1: "Tue", 2: "Wed",
 #                 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"
 #             }
-#             formatte = []
-#             for h in horaires:
-#                 debut = h.heure_debut.strftime("%I:%M %p")
-#                 fin = h.heure_fin.strftime("%I:%M %p")
-#                 formatte.append(f"{debut} - {fin} / {jours[h.jour]}")
-#             return ", ".join(formatte)
-#         return "10:00 AM - 6:00 PM / Mon - Fri"  # Valeur par défaut
+#             return ", ".join(
+#                 f"{h.heure_debut.strftime('%I:%M %p')} - {h.heure_fin.strftime('%I:%M %p')} / {jours[h.jour]}"
+#                 for h in horaires
+#             )
+#         return "10:00 AM - 6:00 PM / Mon - Fri"
 #
 #     def get_note_moyenne(self, obj):
-#         # Calculer la note moyenne des avis
 #         avis = obj.avis.all()
 #         if avis:
 #             return round(sum(a.note for a in avis) / len(avis), 1)
 #         return 0
 #
 #     def get_nombre_avis(self, obj):
-#         # Compter le nombre d'avis
 #         return obj.avis.count()

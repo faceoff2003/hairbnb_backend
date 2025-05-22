@@ -8,7 +8,7 @@ from rest_framework.parsers import FormParser
 from rest_framework.response import Response
 from rest_framework import status
 from hairbnb.models import TblSalonImage, TblSalon
-from hairbnb.serializers.salon_services_serializers import TblSalonImageSerializer
+from hairbnb.salon.salon_serializers import TblSalonImageSerializer
 
 
 class SalonImageListView(ListAPIView):

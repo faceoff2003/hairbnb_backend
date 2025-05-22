@@ -1,13 +1,15 @@
 from django.http import JsonResponse
 from hairbnb.models import TblCoiffeuse
-from ..serializers.users_serializers import CoiffeuseSerializer
 from math import radians, cos, sin, sqrt, atan2
+
+from hairbnb.profil.profil_serializers import CoiffeuseSerializer
+
 
 def haversine(lat1, lon1, lat2, lon2):
     """
     Calcul de la distance entre deux points en kilomètres avec la formule de Haversine.
     """
-    R = 6371  # Rayon moyen de la Terre en km
+    R = 6371  # Rayon moyen en km
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
@@ -27,7 +29,7 @@ def coiffeuses_proches(request):
         for coiffeuse in TblCoiffeuse.objects.all():
             if coiffeuse.position:
                 try:
-                    lat_coiffeuse, lon_coiffeuse = map(float, coiffeuse.position.split(","))  # Extraire coordonnées
+                    lat_coiffeuse, lon_coiffeuse = map(float, coiffeuse.position.split(","))
                     distance = haversine(lat_client, lon_client, lat_coiffeuse, lon_coiffeuse)
 
                     if distance <= distance_max:

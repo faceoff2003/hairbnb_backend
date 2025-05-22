@@ -44,69 +44,28 @@ class CoiffeuseData:
     def to_dict(self):
         return self.__dict__
 
-# class CoiffeuseData:
-#     def __init__(self, coiffeuse):
-#         self.idTblUser = coiffeuse.idTblUser.idTblUser
-#         self.denomination_sociale = coiffeuse.denomination_sociale
-#         self.tva = coiffeuse.tva
-#         self.position = coiffeuse.position
-#
-#         # Infos utilisateur
-#         user = coiffeuse.idTblUser
-#         self.uuid = user.uuid
-#         self.nom = user.nom
-#         self.prenom = user.prenom
-#         self.email = user.email
-#         self.numero_telephone = user.numero_telephone
-#         self.date_naissance = user.date_naissance
-#         self.sexe = user.sexe
-#         self.is_active = user.is_active
-#         self.photo_profil = user.photo_profil.url if user.photo_profil else None
-#
-#         # Adresse
-#         adresse = user.adresse
-#         if adresse:
-#             self.numero = adresse.numero
-#             self.boite_postale = adresse.boite_postale
-#             self.nom_rue = adresse.rue.nom_rue
-#             self.commune = adresse.rue.localite.commune
-#             self.code_postal = adresse.rue.localite.code_postal
-#         else:
-#             self.numero = None
-#             self.boite_postale = None
-#             self.nom_rue = None
-#             self.commune = None
-#             self.code_postal = None
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-# class ServiceData:
-#     def __init__(self, service):
-#         self.idTblService = service.idTblService
-#         self.intitule_service = service.intitule_service
-#         self.description = service.description
-#
-#         # Récupération du temps (via la table de jonction)
-#         service_temps = service.service_temps.first()
-#         self.temps_minutes = service_temps.temps.minutes if service_temps else None
-#
-#         # Récupération du prix (via la table de jonction)
-#         service_prix = service.service_prix.first()
-#         self.prix = service_prix.prix.prix if service_prix else None
-#
-#     def to_dict(self):
-#         return self.__dict__
 
 class SalonData:
-    def __init__(self, salon,filtered_services=None):
+    def __init__(self, salon, filtered_services=None):
         self.idTblSalon = salon.idTblSalon
-        self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
+
+        # Gestion de la relation avec la coiffeuse (adaptation au nouveau modèle)
+        # Vérifier si le salon a toujours une coiffeuse propriétaire principale
+        if hasattr(salon, 'coiffeuse') and salon.coiffeuse:
+            self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
+        else:
+            # Sinon, essayer de trouver la coiffeuse propriétaire via TblCoiffeuseSalon
+            from hairbnb.models import TblCoiffeuseSalon
+            proprietaire = TblCoiffeuseSalon.objects.filter(salon=salon, est_proprietaire=True).first()
+            if proprietaire:
+                self.coiffeuse_id = proprietaire.coiffeuse.idTblUser.idTblUser
+            else:
+                # Fallback si aucune coiffeuse propriétaire n'est trouvée
+                self.coiffeuse_id = None
 
         # ✅ Soit on utilise les services filtrés (pagination), soit tous
         services_source = filtered_services if filtered_services is not None else salon.salon_service.all().order_by(
             'service__intitule_service')
-
         self.services = [ServiceData(service.service).to_dict() for service in services_source]
 
     def to_dict(self):
@@ -168,136 +127,19 @@ class ClientData:
     def to_dict(self):
         return self.__dict__
 
-# class CurrentUserData:
-#     def __init__(self, user):
+# class MinimalCoiffeuseData:
+#     def __init__(self, coiffeuse):
+#         user = coiffeuse.idTblUser  # Récupération de l'utilisateur associé à la coiffeuse
 #         self.idTblUser = user.idTblUser
 #         self.uuid = user.uuid
 #         self.nom = user.nom
 #         self.prenom = user.prenom
-#         self.email = user.email
-#         self.numero_telephone = user.numero_telephone
-#         self.date_naissance = user.date_naissance
-#         self.sexe = user.sexe
-#         self.is_active = user.is_active
-#         self.photo_profil = user.photo_profil.url if user.photo_profil else None
-#         self.type = user.type  # Peut être "coiffeuse" ou "client"
-#
-#         # Vérifier si c'est une coiffeuse ou un client et récupérer les données associées
-#         if user.type == "coiffeuse":
-#             try:
-#                 coiffeuse = TblCoiffeuse.objects.get(idTblUsertbl=user)
-#                 self.extra_data = CoiffeuseData(coiffeuse).to_dict()  # Ajoute les infos de la coiffeuse
-#             except TblCoiffeuse.DoesNotExist:
-#                 self.extra_data = None
-#         elif user.type == "client":
-#             try:
-#                 client = TblClient.objects.get(idTblUser=user)
-#                 self.extra_data = ClientData(client).to_dict()  # Ajoute les infos du client
-#             except TblClient.DoesNotExist:
-#                 self.extra_data = None
-#         else:
-#             self.extra_data = None  # Aucune donnée complémentaire
+#         self.photo_profil = user.photo_profil.url if user.photo_profil else None  # Vérification de la photo
+#         self.position = coiffeuse.position
 #
 #     def to_dict(self):
 #         return self.__dict__
 
-from hairbnb.models import TblCoiffeuse
-
-class MinimalCoiffeuseData:
-    def __init__(self, coiffeuse):
-        user = coiffeuse.idTblUser  # Récupération de l'utilisateur associé à la coiffeuse
-        self.idTblUser = user.idTblUser
-        self.uuid = user.uuid
-        self.nom = user.nom
-        self.prenom = user.prenom
-        self.photo_profil = user.photo_profil.url if user.photo_profil else None  # Vérification de la photo
-        self.position = coiffeuse.position
-
-    def to_dict(self):
-        return self.__dict__
-
-# class CartItemData:
-from decimal import Decimal
-from django.utils.timezone import now
-from hairbnb.models import TblPromotion
-
-# class CartItemData:
-#     def __init__(self, cart_item):
-#         self.id = cart_item.idTblCartItem
-#         self.service = self._get_service_data(cart_item.service)
-#         self.quantity = cart_item.quantity
-#
-#     def _get_service_data(self, service):
-#         """ Récupère les informations du service et applique la promotion si disponible """
-#         prix_standard = service.service_prix.first().prix.prix if service.service_prix.exists() else Decimal("0.00")
-#
-#         # Vérifier s'il y a une promotion active
-#         promo = TblPromotion.objects.filter(
-#             service=service,
-#             start_date__lte=now(),
-#             end_date__gte=now()
-#         ).first()
-#
-#         if promo:  # Appliquer la réduction
-#             reduction = (promo.discount_percentage / Decimal("100")) * prix_standard
-#             prix_final = prix_standard - reduction
-#             promo_data = {
-#                 "idPromotion": promo.idPromotion,
-#                 "service_id": service.idTblService,
-#                 "discount_percentage": promo.discount_percentage,
-#                 "start_date": promo.start_date,
-#                 "end_date": promo.end_date,
-#                 "is_active": promo.is_active()
-#             }
-#         else:  # Pas de promo
-#             prix_final = prix_standard
-#             promo_data = None
-#
-#         return {
-#             "idTblService": service.idTblService,
-#             "intitule_service": service.intitule_service,
-#             "description": service.description,
-#             "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
-#             "prix": float(prix_standard),
-#             "promotion": promo_data,
-#             "prix_final": float(prix_final)  # ✅ Prix recalculé avec promo appliquée
-#         }
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-
-# class CartItemData:
-#     def __init__(self, cart_item):
-#         self.id = cart_item.pk  # Utilisation de pk pour éviter l'erreur
-#         self.service = ServiceData(cart_item.service).to_dict()
-#         self.quantity = cart_item.quantity
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-
-
-# class CartItemData:
-#     def __init__(self, cart_item):
-#         self.id = cart_item.id
-#         self.service = ServiceData(cart_item.service).to_dict()  # ✅ Inclut prix_final
-#         self.quantity = cart_item.quantity
-#         self.total_price = self.service["prix_final"] * self.quantity  # ✅ Utilise le prix promo si actif
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-
-# class CartData:
-#     def __init__(self, cart):
-#         self.idTblCart = cart.idTblCart
-#         self.user = CurrentUserData(cart.user).to_dict()  # Réutilise CurrentUserData
-#         self.items = [CartItemData(item).to_dict() for item in cart.items.all()]
-#         self.total_price = cart.total_price()  # Méthode qui calcule le total
-#
-#     def to_dict(self):
-#         return self.__dict__
 
 from django.utils.timezone import now
 
@@ -376,68 +218,6 @@ class ServiceData:
         return self.__dict__
 
 
-
-
-#     def __init__(self, service):
-#         self.idTblService = service.idTblService
-#         self.intitule_service = service.intitule_service
-#         self.description = service.description
-#
-#         # 🔍 Récupération du temps
-#         service_temps = service.service_temps.first()
-#         self.temps_minutes = service_temps.temps.minutes if service_temps else None
-#
-#         # 🔍 Récupération du prix
-#         service_prix = service.service_prix.first()
-#         self.prix = service_prix.prix.prix if service_prix else None
-#
-#         # 🔍 Vérifie s'il y a une promotion active
-#         active_promo = service.promotions.filter(start_date__lte=now(), end_date__gte=now()).first()
-#
-#         if active_promo:
-#             self.promotion = {
-#                 "idPromotion": active_promo.idPromotion,
-#                 "service_id": active_promo.service.idTblService,
-#                 "discount_percentage": active_promo.discount_percentage,
-#                 "start_date": active_promo.start_date.isoformat(),
-#                 "end_date": active_promo.end_date.isoformat(),
-#                 "is_active": active_promo.is_active()
-#             }
-#             # ✅ Calcul du prix final avec la réduction
-#             self.prix_final = self.prix * (1 - (active_promo.discount_percentage / 100))
-#         else:
-#             self.promotion = None
-#             self.prix_final = self.prix
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-# class ServiceData:
-#     def __init__(self, service):
-#         self.idTblService = service.idTblService
-#         self.intitule_service = service.intitule_service
-#         self.description = service.description
-#
-#         # Récupération du temps (via la table de jonction)
-#         service_temps = service.service_temps.first()
-#         self.temps_minutes = service_temps.temps.minutes if service_temps else None
-#
-#         # Récupération du prix
-#         service_prix = service.service_prix.first()
-#         self.prix = service_prix.prix.prix if service_prix else None
-#
-#         # Récupération de la promotion active
-#         active_promo = service.promotions.filter(start_date__lte=now(), end_date__gte=now()).first()
-#         if active_promo:
-#             self.discount_percentage = active_promo.discount_percentage
-#             self.prix_final = self.prix * (1 - (self.discount_percentage / 100))
-#         else:
-#             self.discount_percentage = 0
-#             self.prix_final = self.prix
-#
-#     def to_dict(self):
-#         return self.__dict__
-
 class PromotionData:
     def __init__(self, promotion):
         self.idPromotion = promotion.idPromotion
@@ -481,50 +261,6 @@ class RendezVousData:
         return self.__dict__
 
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
-
-# class PaiementData:
-#     """Classe pour structurer un paiement."""
-#
-#     def __init__(self, paiement):
-#         self.idPaiement = paiement.idPaiement
-#         self.rendez_vous = RendezVousData(paiement.rendez_vous).to_dict()
-#         self.montant_paye = paiement.montant_paye
-#         self.date_paiement = paiement.date_paiement.isoformat()
-#         self.methode = paiement.methode
-#         self.statut = paiement.statut  # Peut être 'en attente', 'payé', 'remboursé'
-#
-#     def to_dict(self):
-#         return self.__dict__
-
-    # @staticmethod
-    # def create_payment_intent(rendez_vous_id, methode_paiement):
-    #     """
-    #     Crée un PaymentIntent Stripe et retourne le client_secret.
-    #     """
-    #     try:
-    #         rdv = TblRendezVous.objects.get(idRendezVous=rendez_vous_id)
-    #
-    #         payment_intent = stripe.PaymentIntent.create(
-    #             amount=int(rdv.total_prix * 100),  # Convertir en centimes
-    #             currency="eur",
-    #             payment_method_types=["card"],
-    #             metadata={"rendez_vous_id": rdv.idRendezVous}
-    #         )
-    #
-    #         # Créer un paiement en attente
-    #         paiement = TblPaiement.objects.create(
-    #             rendez_vous=rdv,
-    #             montant_paye=rdv.total_prix,
-    #             methode=methode_paiement,
-    #             statut="en attente"
-    #         )
-    #
-    #         return {"client_secret": payment_intent.client_secret, "paiement": PaiementData(paiement).to_dict()}
-    #
-    #     except TblRendezVous.DoesNotExist:
-    #         return {"error": "Rendez-vous non trouvé"}
-    #     except Exception as e:
-    #         return {"error": str(e)}
 
 class HoraireCoiffeuseData:
     def __init__(self, horaire):
@@ -655,100 +391,3 @@ class RendezVousManager:
             queryset = queryset.filter(statut=statut)
 
         return queryset.order_by('-date_heure')
-
-# class RendezVousManager:
-#     def __init__(self, coiffeuse_id):
-#         self.coiffeuse_id = coiffeuse_id
-#
-#     def get_by_statut(self, statut):
-#         """
-#         🔍 Filtre les rendez-vous selon leur statut.
-#         Ne renvoie que les rendez-vous non archivés.
-#         """
-#         queryset = TblRendezVous.objects.filter(
-#             coiffeuse__idTblUser=self.coiffeuse_id,
-#             est_archive=False  # ✅ on filtre ici
-#         )
-#         if statut:
-#             queryset = queryset.filter(statut=statut)
-#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
-#
-#     def get_by_periode(self, periode, statut=None):
-#         """
-#         🔄 Filtre les rendez-vous par période : jour, semaine, mois, année.
-#         Ne renvoie que les rendez-vous non archivés.
-#         """
-#         today = now().date()
-#
-#         if periode == "jour":
-#             start = today
-#             end = today + timedelta(days=1)
-#         elif periode == "semaine":
-#             start = today - timedelta(days=today.weekday())
-#             end = start + timedelta(days=7)
-#         elif periode == "mois":
-#             start = today.replace(day=1)
-#             end = (start + timedelta(days=32)).replace(day=1)
-#         elif periode == "annee":
-#             start = today.replace(month=1, day=1)
-#             end = today.replace(month=12, day=31)
-#         else:
-#             return []  # ⚠️ période non reconnue
-#
-#         queryset = TblRendezVous.objects.filter(
-#             coiffeuse__idTblUser=self.coiffeuse_id,
-#             date_heure__range=(start, end),
-#             est_archive=False  # ✅ ici aussi
-#         )
-#
-#         if statut:
-#             queryset = queryset.filter(statut=statut)
-#
-#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
-
-
-
-# class RendezVousManager:
-#     def __init__(self, coiffeuse_id):
-#         self.coiffeuse_id = coiffeuse_id
-#
-#     def get_by_statut(self, statut):
-#         """
-#         🔍 Filtre les rendez-vous selon leur statut.
-#         """
-#         queryset = TblRendezVous.objects.filter(coiffeuse__idTblUser=self.coiffeuse_id)
-#         if statut:
-#             queryset = queryset.filter(statut=statut)
-#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]
-#
-#     def get_by_periode(self, periode, statut=None):
-#         """
-#         🔄 Filtre les rendez-vous par période : jour, semaine, mois, année.
-#         Optionnellement filtré par statut.
-#         """
-#         today = now().date()
-#
-#         if periode == "jour":
-#             start = today
-#             end = today + timedelta(days=1)
-#         elif periode == "semaine":
-#             start = today - timedelta(days=today.weekday())
-#             end = start + timedelta(days=7)
-#         elif periode == "mois":
-#             start = today.replace(day=1)
-#             end = (start + timedelta(days=32)).replace(day=1)
-#         elif periode == "annee":
-#             start = today.replace(month=1, day=1)
-#             end = today.replace(month=12, day=31)
-#         else:
-#             return []  # ⚠️ période non reconnue
-#
-#         queryset = TblRendezVous.objects.filter(
-#             coiffeuse__idTblUser=self.coiffeuse_id,
-#             date_heure__range=(start, end)
-#         )
-#
-#         if statut:
-#             queryset = queryset.filter(statut=statut)
-#
-#         return [RendezVousData(rdv).to_dict() for rdv in queryset.order_by('-date_heure')]

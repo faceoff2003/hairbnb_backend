@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -7,42 +8,93 @@ from hairbnb.models import TblUser, TblClient, TblRendezVous, TblCoiffeuse
 from hairbnb.order.order_serializes import CommandeSerializer, UpdateRendezVousSerializer, CommandeCoiffeuseSerializer
 
 
-@firebase_authenticated
 @api_view(['GET'])
 def mes_commandes(request, idUser):
     """
-    Récupère toutes les commandes (rendez-vous payés) d'un utilisateur
+    Récupère toutes les commandes (rendez-vous payés) d'un utilisateur,
+    quel que soit son type (client, coiffeuse, ou les deux).
     """
     try:
-        # Récupérer l'utilisateur et son client associé
+        # Récupérer l'utilisateur
         user = TblUser.objects.get(idTblUser=idUser)
-        client = TblClient.objects.get(idTblUser=user)
 
-        # Récupérer tous les rendez-vous payés de l'utilisateur
-        commandes = TblRendezVous.objects.filter(
-            client=client,
-            # Utiliser la relation inverse depuis TblPaiement
-            tblpaiement__isnull=False,
-            tblpaiement__statut__code="payé"  # ou "Payé" selon votre configuration
-        ).select_related(
-            'salon', 'coiffeuse', 'coiffeuse__idTblUser'
-        ).prefetch_related(
-            'rendez_vous_services', 'rendez_vous_services__service',
-            'tblpaiement_set'  # Utilisez le nom correct de la relation inverse
-        ).order_by('-tblpaiement__date_paiement')  # Les plus récents d'abord
+        # Vérifier les clients liés à cet utilisateur
+        clients = TblClient.objects.filter(idTblUser=user)
+
+        if not clients.exists():
+            # Aucun profil client - retourner une liste vide
+            return Response([])
+
+        # Récupérer les commandes pour tous les profils clients de cet utilisateur
+        all_commandes = []
+
+        for client in clients:
+            commandes = TblRendezVous.objects.filter(
+                client=client,
+                tblpaiement__isnull=False,
+                tblpaiement__statut__code="payé"
+            ).select_related(
+                'salon', 'coiffeuse', 'coiffeuse__idTblUser'
+            ).prefetch_related(
+                'rendez_vous_services', 'rendez_vous_services__service',
+                'tblpaiement_set'
+            )
+            all_commandes.extend(commandes)
+
+        # Trier toutes les commandes par date de paiement
+        all_commandes.sort(
+            key=lambda x: x.tblpaiement_set.first().date_paiement if x.tblpaiement_set.exists() else timezone.now(),
+            reverse=True)
 
         # Serializer les données
-        serializer = CommandeSerializer(commandes, many=True)
+        serializer = CommandeSerializer(all_commandes, many=True)
         return Response(serializer.data)
     except TblUser.DoesNotExist:
         return Response({"detail": "Utilisateur non trouvé."}, status=status.HTTP_404_NOT_FOUND)
-    except TblClient.DoesNotExist:
-        return Response({"detail": "Client non trouvé pour cet utilisateur."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         import traceback
         traceback.print_exc()
         print("ERREUR :", e)
         return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+#@firebase_authenticated
+# @api_view(['GET'])
+# def mes_commandes(request, idUser):
+#     """
+#     Récupère toutes les commandes (rendez-vous payés) d'un utilisateur
+#     """
+#     try:
+#         # Récupérer l'utilisateur et son client associé
+#         user = TblUser.objects.get(idTblUser=idUser)
+#         client = TblUser.objects.get(idTblUser=user)
+#
+#         # Récupérer tous les rendez-vous payés de l'utilisateur
+#         commandes = TblRendezVous.objects.filter(
+#             client=client,
+#             # Utiliser la relation inverse depuis TblPaiement
+#             tblpaiement__isnull=False,
+#             tblpaiement__statut__code="payé"  # ou "Payé" selon votre configuration
+#         ).select_related(
+#             'salon', 'coiffeuse', 'coiffeuse__idTblUser'
+#         ).prefetch_related(
+#             'rendez_vous_services', 'rendez_vous_services__service',
+#             'tblpaiement_set'  # Utilisez le nom correct de la relation inverse
+#         ).order_by('-tblpaiement__date_paiement')  # Les plus récents d'abord
+#
+#         # Serializer les données
+#         serializer = CommandeSerializer(commandes, many=True)
+#         return Response(serializer.data)
+#     except TblUser.DoesNotExist:
+#         return Response({"detail": "Utilisateur non trouvé."}, status=status.HTTP_404_NOT_FOUND)
+#     except TblClient.DoesNotExist:
+#         return Response({"detail": "Client non trouvé pour cet utilisateur."}, status=status.HTTP_404_NOT_FOUND)
+#     except Exception as e:
+#         import traceback
+#         traceback.print_exc()
+#         print("ERREUR :", e)
+#         return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #@firebase_authenticated

@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 # Table pour gérer les localités
 class TblLocalite(models.Model):
     idTblLocalite = models.AutoField(primary_key=True)
-    commune = models.CharField(max_length=255)
-    code_postal = models.CharField(max_length=10)
+    commune = models.CharField(max_length=40)
+    code_postal = models.CharField(max_length=6)
 
     def __str__(self):
         return f"{self.commune} ({self.code_postal})"
@@ -20,128 +20,277 @@ class TblLocalite(models.Model):
 # Table pour gérer les rues
 class TblRue(models.Model):
     idTblRue = models.AutoField(primary_key=True)
-    nom_rue = models.CharField(max_length=255)
+    nom_rue = models.CharField(max_length=100)
     localite = models.ForeignKey(
-        TblLocalite, on_delete=models.CASCADE, related_name='rues'
+        TblLocalite,
+        on_delete=models.PROTECT,  # Empêche suppression si des rues l'utilisent
+        related_name='rues'
     )
 
     class Meta:
-        unique_together = ('nom_rue', 'localite')  # Unicité basée sur nom_rue et localite
+        unique_together = ('nom_rue', 'localite')
 
     def __str__(self):
         return self.nom_rue
 
-
-# Table pour gérer les adresses
+# Définition du modèle TblAdresse, représentant une adresse physique précise
 class TblAdresse(models.Model):
+    # Identifiant unique de l'adresse, généré automatiquement (clé primaire)
     idTblAdresse = models.AutoField(primary_key=True)
-    numero = models.CharField(max_length=10)
-    boite_postale = models.CharField(max_length=10, blank=True, null=True)
+
+    # Champ pour le numéro de rue, augmenté à 10 caractères pour inclure les boîtes postales
+    # Par exemple: "12/A", "12B/3", "12/1" etc.
+    numero = models.CharField(max_length=5)
+
+    # Clé étrangère vers le modèle TblRue, indiquant la rue à laquelle appartient cette adresse
     rue = models.ForeignKey(
-        TblRue, on_delete=models.CASCADE, related_name='adresses'
+        TblRue,  # Référence au modèle TblRue
+        on_delete=models.PROTECT,  # Empêche suppression si des adresses l'utilisent
+        related_name='adresses'  # Permet d'accéder aux adresses depuis la rue via rue.adresses.all()
     )
 
+    # Représentation textuelle de l'adresse, utile pour l'affichage dans l'admin Django ou en debug
     def __str__(self):
-        return f"{self.numero}, {self.boite_postale or ''}, {self.rue.nom_rue}, {self.rue.localite.commune}"
+        # Affiche le numéro, le nom de la rue, et la commune associée via la localité
+        return f"{self.numero}, {self.rue.nom_rue}, {self.rue.localite.commune}"
 
-    # Table utilisateur de base
-    # class TblUser(models.Model):
-    #     idTblUser = models.AutoField(primary_key=True)
-    #     uuid = models.CharField(max_length=255, unique=True)
-    #     nom = models.CharField(max_length=255)
-    #     prenom = models.CharField(max_length=255)
-    #     email = models.EmailField(unique=True)
-    #     type = models.CharField(
-    #         max_length=10,
-    #         choices=[('coiffeuse', 'Coiffeuse'), ('client', 'Client')]
-    #     )
-    #     sexe = models.CharField(
-    #         max_length=6,
-    #         choices=[('homme', 'Homme'), ('femme', 'Femme'), ('autre', 'Autre')]
-    #     )
-    #     numero_telephone = models.CharField(max_length=15)
-    #     date_naissance = models.DateField(null=True, blank=True)
-    #     is_active = models.BooleanField(default=True)
-    #     adresse = models.ForeignKey(
-    #         'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
-    #     )
-    #     photo_profil = models.ImageField(
-    #         upload_to='photos/profils/',
-    #         null=True,
-    #         blank=True,
-    #         default='photos/defaults/avatar.png'  # Avatar par défaut
-    #     )
-    #
-    #     def __str__(self):
-    #         return f"{self.nom} {self.prenom} ({self.type})"
+#Définition du modèle TblNumeroTVA, qui représente un numéro de TVA attribuable à un salon ou une coiffeuse
+# class TblNumeroTVA(models.Model):
+#     # Clé primaire auto-incrémentée pour identifier de manière unique chaque enregistrement de numéro de TVA
+#     idTblNumeroTVA = models.AutoField(primary_key=True)
+#
+#     # Champ pour stocker le numéro de TVA (doit être unique dans la base de données)
+#     numero_tva = models.CharField(
+#         max_length=15,  # Limite la longueur du numéro TVA à 20 caractères
+#         unique=True     # Empêche la duplication d’un même numéro TVA
+#     )
+#
+#     # Représentation en chaîne de caractères de l’objet, utile dans l’interface d’administration et les affichages
+#     def __str__(self):
+#         return self.numero_tva
 
+################################################################################################################
+########################################### Modèle représentant un utilisateur #################################
+################################################################################################################
 class TblUser(models.Model):
-        idTblUser = models.AutoField(primary_key=True)
-        uuid = models.CharField(max_length=255, unique=True)
-        nom = models.CharField(max_length=255)
-        prenom = models.CharField(max_length=255)
-        email = models.EmailField(unique=True)
-        type = models.CharField(
-            max_length=10,
-            choices=[('coiffeuse', 'Coiffeuse'), ('client', 'Client')]
-        )
-        sexe = models.CharField(
-            max_length=6,
-            choices=[('homme', 'Homme'), ('femme', 'Femme'), ('autre', 'Autre')]
-        )
-        numero_telephone = models.CharField(max_length=15)
-        date_naissance = models.DateField(null=True, blank=True)
-        is_active = models.BooleanField(default=True)
-        adresse = models.ForeignKey(
-            'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
-        )
-        photo_profil = models.ImageField(
-            upload_to='photos/profils/',
-            null=True,
-            blank=True,
-            default='photos/defaults/avatar.png'
-        )
+    # Identifiant unique de l'utilisateur (clé primaire auto-incrémentée)
+    idTblUser = models.AutoField(primary_key=True)
 
-        # ✅ Ajout de la clé étrangère vers TblRole
-        role = models.ForeignKey(
-            'TblRole',  # 💡 entre guillemets !
-            on_delete=models.SET_NULL,
-            null=True,
-            default=1,
-            related_name='utilisateurs')
+    # Identifiant universel unique pour chaque utilisateur (UUID string)
+    uuid = models.CharField(max_length=40, unique=True)
+
+    # Nom de famille de l'utilisateur
+    nom = models.CharField(max_length=50)
+
+    # Prénom de l'utilisateur
+    prenom = models.CharField(max_length=50)
+
+    # Adresse e-mail de l'utilisateur (doit être unique)
+    email = models.EmailField(unique=True)
+
+    # Numéro de téléphone de l'utilisateur (format libre, max 15 chiffres)
+    numero_telephone = models.CharField(max_length=20)
+
+    # Date de naissance de l'utilisateur (optionnelle)
+    date_naissance = models.DateField(null=False, blank=False)
+
+    # Champ booléen indiquant si le compte utilisateur est actif
+    is_active = models.BooleanField(default=True)
+
+    # Lien vers l'adresse de résidence de l'utilisateur
+    adresse = models.ForeignKey(
+        'TblAdresse',
+        on_delete=models.RESTRICT,
+        null=False,
+        related_name='utilisateurs'  # Accès inverse : adresse.utilisateurs.all()
+    )
+
+    # Photo de profil de l'utilisateur (champ image avec une valeur par défaut)
+    photo_profil = models.ImageField(
+        upload_to='photos/profils/',
+        null=True,
+        blank=True,
+        default='photos/defaults/avatar.png'
+    )
+
+    # Rôle attribué à l'utilisateur (clé étrangère vers la table TblRole)
+    role = models.ForeignKey(
+        'TblRole',
+        on_delete=models.SET_DEFAULT,
+        null=False,
+        default=1,
+        related_name='utilisateurs'
+    )
+
+    # Référence vers le sexe de l'utilisateur (clé étrangère vers TblSexe)
+    sexe_ref = models.ForeignKey(
+        'TblSexe',
+        on_delete=models.PROTECT,
+        related_name='utilisateurs',
+        null=False  # Permet une migration progressive
+    )
+
+    # Référence vers le type d'utilisateur (clé étrangère vers TblType)
+    type_ref = models.ForeignKey(
+        'TblType',
+        on_delete=models.PROTECT,
+        related_name='utilisateurs',
+        null=False  # Permet une migration progressive
+    )
+
+    # Représentation textuelle de l'utilisateur dans l'administration
+    def __str__(self):
+        return f"{self.nom} {self.prenom} ({self.get_type()} - {self.get_sexe()} - {self.get_role()})"
+
+    # Récupère le libellé du rôle (ex: admin, user)
+    def get_role(self):
+        return self.role.nom if self.role else 'user'
+
+    # Récupère le libellé du type (ex: coiffeuse, client)
+    def get_type(self):
+        return self.type_ref.libelle if self.type_ref else 'Type inconnu'
+
+    # Récupère le libellé du sexe (ex: homme, femme)
+    def get_sexe(self):
+        return self.sexe_ref.libelle if self.sexe_ref else 'Sexe inconnu'
+################################################################################################################
 
 
-def get_role(self):
-    return self.role.nom if self.role else 'user'  # Valeur par défaut logique
 
 
-def __str__(self):
-    return f"{self.nom} {self.prenom} ({self.type} - {self.get_role()})"
+# class TblUser(models.Model):
+#         idTblUser = models.AutoField(primary_key=True)
+#         uuid = models.CharField(max_length=255, unique=True)
+#         nom = models.CharField(max_length=255)
+#         prenom = models.CharField(max_length=255)
+#         email = models.EmailField(unique=True)
+#         numero_telephone = models.CharField(max_length=15)
+#         date_naissance = models.DateField(null=True, blank=True)
+#         is_active = models.BooleanField(default=True)
+#         adresse = models.ForeignKey(
+#             'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
+#         )
+#         photo_profil = models.ImageField(
+#             upload_to='photos/profils/',
+#             null=True,
+#             blank=True,
+#             default='photos/defaults/avatar.png'
+#         )
+#
+#         # ✅ Ajout de la clé étrangère vers TblRole
+#         role = models.ForeignKey(
+#             'TblRole',
+#             on_delete=models.SET_NULL,
+#             null=True,
+#             default=1,
+#             related_name='utilisateurs')
+#
+#         # Ajouter les nouveaux champs (noms temporaires)
+#         sexe_ref = models.ForeignKey(
+#             'TblSexe',
+#             on_delete=models.PROTECT,
+#             related_name='utilisateurs',
+#             null=True  # Important pour la migration progressive
+#         )
+#         type_ref = models.ForeignKey(
+#             'TblType',
+#             on_delete=models.PROTECT,
+#             related_name='utilisateurs',
+#             null=True  # Important pour la migration progressive
+#         )
+#
+#
+# def get_role(self):
+#     return self.role.nom if self.role else 'user'
+#
+# def get_type(self):
+#     return self.type_ref.libelle if self.type_ref else 'Type inconnu'
+#
+# def get_sexe(self):
+#     return self.sexe_ref.libelle if self.sexe_ref else 'Sexe inconnu'
+#
+# def __str__(self):
+#     return f"{self.nom} {self.prenom} ({self.get_type()} - {self.get_sexe()} - {self.get_role()})"
 
 
 class TblRole(models.Model):
     idTblRole = models.AutoField(primary_key=True)
-    nom = models.CharField(max_length=50, unique=True)  # Exemple: "admin", "user"
+    nom = models.CharField(max_length=40, unique=True)  # Exemple: "admin", "user"
 
     def __str__(self):
         return self.nom
 
 
-# Table pour les coiffeuses
-class TblCoiffeuse(models.Model):
-    idTblUser = models.OneToOneField(
-        'TblUser', on_delete=models.CASCADE, related_name='coiffeuse'
-    )
-    denomination_sociale = models.CharField(max_length=255, blank=True, null=True)
-    tva = models.CharField(max_length=20, blank=True, null=True)
-    position = models.CharField(max_length=512, blank=True, null=True)
+# Ajoutez ces nouvelles tables à votre models.py
+class TblSexe(models.Model):
+    idTblSexe = models.AutoField(primary_key=True)
+    libelle = models.CharField(max_length=10, unique=True)
 
+    def __str__(self):
+        return self.libelle
+
+
+class TblType(models.Model):
+    idTblType = models.AutoField(primary_key=True)
+    libelle = models.CharField(max_length=15, unique=True)
+
+    def __str__(self):
+        return self.libelle
+
+################################################################################################################
+########################################### Modèle représentant une coiffeuse ##################################
+################################################################################################################
+class TblCoiffeuse(models.Model):
+    # Lien OneToOne vers le modèle TblUser (chaque coiffeuse est aussi un utilisateur)
+    idTblUser = models.OneToOneField(
+        'TblUser',
+        on_delete=models.CASCADE,
+        related_name='coiffeuse'  # Permet d’accéder à la coiffeuse via user.coiffeuse
+    )
+
+    # Nom commercial de la coiffeuse (anciennement 'denomination_sociale')
+    nom_commercial = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True
+    )
+
+    # # Lien optionnel vers un numéro de TVA (via clé étrangère)
+    # numero_tva = models.ForeignKey(
+    #     'TblNumeroTVA',
+    #     on_delete=models.SET_NULL,    # Si le numéro est supprimé, on met à null
+    #     null=True,
+    #     blank=True,
+    #     related_name='coiffeuses'     # Accès inverse via numero_tva.coiffeuses.all()
+    # )
+
+    # Métadonnées pour une meilleure lisibilité dans l’admin Django
     class Meta:
         verbose_name = "Coiffeuse"
         verbose_name_plural = "Coiffeuses"
 
+    # Représentation textuelle de la coiffeuse, affichée dans l’admin ou les interfaces
     def __str__(self):
         return f"Coiffeuse: {self.idTblUser.nom} {self.idTblUser.prenom}"
+########################################################################################################################
+
+
+
+# # Table pour les coiffeuses
+# class TblCoiffeuse(models.Model):
+#     idTblUser = models.OneToOneField(
+#         'TblUser', on_delete=models.CASCADE, related_name='coiffeuse'
+#     )
+#     denomination_sociale = models.CharField(max_length=255, blank=True, null=True)
+#     tva = models.CharField(max_length=20, blank=True, null=True)
+#     position = models.CharField(max_length=512, blank=True, null=True)
+#
+#     class Meta:
+#         verbose_name = "Coiffeuse"
+#         verbose_name_plural = "Coiffeuses"
+#
+#     def __str__(self):
+#         return f"Coiffeuse: {self.idTblUser.nom} {self.idTblUser.prenom}"
 
 
 # Table pour les clients
@@ -193,26 +342,229 @@ class TblService(models.Model):
         return f"{self.intitule_service} €"
 
 
+################################################################################################################
+#################               Modèle représentant un salon de coiffure               #########################
+################################################################################################################
 class TblSalon(models.Model):
+    # Identifiant unique du salon (clé primaire auto-incrémentée)
     idTblSalon = models.AutoField(primary_key=True)
-    coiffeuse = models.OneToOneField(
-        'TblCoiffeuse', on_delete=models.CASCADE, related_name='salon'
-    )
+
+    # Nom du salon
     nom_salon = models.CharField(max_length=30)
+
+    # Slogan publicitaire du salon (champ facultatif)
     slogan = models.CharField(max_length=40, blank=True, null=True)
-    a_propos = models.TextField(max_length=700, blank=True, null=True)  # Nouveau champ pour la description détaillée
+
+    # Description du salon (champ facultatif, texte plus long)
+    a_propos = models.TextField(max_length=700, blank=True, null=True)
+
+    # Logo du salon, avec un emplacement de stockage personnalisé et une image par défaut
     logo_salon = models.ImageField(
-        upload_to='photos/logos/',
+        upload_to='photos/logos/',  # Dossier de destination dans MEDIA_ROOT
         null=True,
         blank=True,
-        default='photos/defaults/logo_default.png'  # Logo par défaut
-    )
-    services = models.ManyToManyField(
-        TblService, related_name='salons', through='TblSalonService'
+        default='photos/defaults/logo_default.png'  # Image par défaut si aucun logo n'est fourni
     )
 
+    # Numéro de tva de salon
+    numero_tva = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+    )
+
+    # Relation ManyToMany avec les services proposés dans le salon, via une table intermédiaire
+    services = models.ManyToManyField(
+        'TblService',
+        related_name='salons',
+        through='TblSalonService'  # Table personnalisée de liaison
+    )
+
+    # Adresse du salon (relation optionnelle)
+    adresse = models.ForeignKey(
+        'TblAdresse',
+        on_delete=models.SET_NULL,  # Si l'adresse est supprimée, on met à null
+        null=True,
+        related_name='salons'
+    )
+
+    # Champ pour stocker la géolocalisation du salon (latitude,longitude)
+    position = models.CharField(
+        max_length=50,
+        default="0,0",  # Valeur par défaut
+        help_text="Format: 'latitude,longitude'"
+    )
+
+    # # Référence facultative vers un numéro de TVA (lié via clé étrangère)
+    # numero_tva = models.ForeignKey(
+    #     'TblNumeroTVA',
+    #     on_delete=models.SET_NULL,  # Si le numéro est supprimé, on met à null
+    #     null=True,
+    #     blank=True,
+    #     related_name='salons'
+    # )
+
+    # Relation ManyToMany avec les coiffeuses travaillant dans ce salon,
+    # avec une table intermédiaire personnalisée TblCoiffeuseSalon
+    coiffeuses = models.ManyToManyField(
+        'TblCoiffeuse',
+        through='TblCoiffeuseSalon',
+        related_name='salons'
+    )
+
+    def get_proprietaire(self):
+        """
+        Récupère la coiffeuse propriétaire du salon.
+        """
+        relation = self.employes.filter(est_proprietaire=True).first()
+        return relation.coiffeuse if relation else None
+
+    @property
+    def coiffeuse(self):
+        """
+        Propriété pour maintenir la compatibilité avec l'ancien code.
+        """
+        return self.get_proprietaire()
+
+    # Représentation textuelle de l'objet, utilisée notamment dans l'interface d'administration
     def __str__(self):
-        return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+        # Essayer d'abord d'utiliser le propriétaire
+        proprietaire = self.get_proprietaire()
+        if proprietaire and hasattr(proprietaire, 'idTblUser'):
+            return f"Salon de {proprietaire.idTblUser.nom} {proprietaire.idTblUser.prenom}"
+        return f"Salon: {self.nom_salon}"
+
+
+########################################################################################################################
+
+
+
+
+# ################################################################################################################
+# #################               Modèle représentant un salon de coiffure               #########################
+# ################################################################################################################
+# class TblSalon(models.Model):
+#     # Identifiant unique du salon (clé primaire auto-incrémentée)
+#     idTblSalon = models.AutoField(primary_key=True)
+#
+#     # Relation OneToOne avec une coiffeuse principale (gérante ou propriétaire)
+#     # related_name='salon_direct' permet d’accéder au salon directement via coiffeuse.salon_direct
+#     coiffeuse = models.OneToOneField(
+#         'TblCoiffeuse',
+#         on_delete=models.CASCADE,
+#         related_name='salon_direct'
+#     )
+#
+#     # Nom du salon
+#     nom_salon = models.CharField(max_length=30)
+#
+#     # Slogan publicitaire du salon (champ facultatif)
+#     slogan = models.CharField(max_length=40, blank=True, null=True)
+#
+#     # Description du salon (champ facultatif, texte plus long)
+#     a_propos = models.TextField(max_length=700, blank=True, null=True)
+#
+#     # Logo du salon, avec un emplacement de stockage personnalisé et une image par défaut
+#     logo_salon = models.ImageField(
+#         upload_to='photos/logos/',                         # Dossier de destination dans MEDIA_ROOT
+#         null=True,
+#         blank=True,
+#         default='photos/defaults/logo_default.png'         # Image par défaut si aucun logo n’est fourni
+#     )
+#
+#     # Relation ManyToMany avec les services proposés dans le salon, via une table intermédiaire
+#     services = models.ManyToManyField(
+#         'TblService',
+#         related_name='salons',
+#         through='TblSalonService'  # Table personnalisée de liaison
+#     )
+#
+#     # Adresse du salon (relation optionnelle)
+#     adresse = models.ForeignKey(
+#         'TblAdresse',
+#         on_delete=models.SET_NULL,  # Si l'adresse est supprimée, on met à null
+#         null=True,
+#         related_name='salons'
+#     )
+#
+#     # Champ pour stocker la géolocalisation du salon (latitude,longitude)
+#     position = models.CharField(
+#         max_length=50,
+#         default="0,0",  # Valeur par défaut
+#         help_text="Format: 'latitude,longitude'"
+#     )
+#
+#     # Référence facultative vers un numéro de TVA (lié via clé étrangère)
+#     numero_tva = models.ForeignKey(
+#         'TblNumeroTVA',
+#         on_delete=models.SET_NULL,  # Si le numéro est supprimé, on met à null
+#         null=True,
+#         blank=True,
+#         related_name='salons'
+#     )
+#
+#     # Relation ManyToMany avec les coiffeuses travaillant dans ce salon,
+#     # avec une table intermédiaire personnalisée TblCoiffeuseSalon
+#     coiffeuses = models.ManyToManyField(
+#         'TblCoiffeuse',
+#         through='TblCoiffeuseSalon',
+#         related_name='salons'
+#     )
+#
+#     # Représentation textuelle de l’objet, utilisée notamment dans l’interface d’administration
+#     def __str__(self):
+#         # Affiche le nom du propriétaire si défini, sinon le nom du salon
+#         if hasattr(self, 'coiffeuse') and self.coiffeuse:
+#             return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
+#         return f"Salon: {self.nom_salon}"
+# ########################################################################################################################
+
+################################################################################################################
+########################### Modèle représentant la relation entre coiffeuse et salon ###########################
+################################################################################################################
+class TblCoiffeuseSalon(models.Model):
+    # Identifiant unique de la relation (clé primaire auto-incrémentée)
+    idCoiffeuseSalon = models.AutoField(primary_key=True)
+
+    # Lien vers la coiffeuse employée ou collaboratrice dans le salon
+    coiffeuse = models.ForeignKey(
+        'TblCoiffeuse',
+        on_delete=models.CASCADE,
+        related_name='emplois'  # Permet d'accéder à toutes les affectations d'une coiffeuse via coiffeuse.emplois
+    )
+
+    # Lien vers le salon concerné par la relation
+    salon = models.ForeignKey(
+        'TblSalon',
+        on_delete=models.CASCADE,
+        related_name='employes'  # Permet d'accéder à toutes les coiffeuses travaillant dans un salon via salon.employes
+    )
+
+    # Indique si la coiffeuse est propriétaire ou non du salon (utile pour l'affichage ou les droits)
+    est_proprietaire = models.BooleanField(default=False)
+
+    # Contrainte d’unicité : une coiffeuse ne peut pas être liée deux fois au même salon
+    class Meta:
+        unique_together = ('coiffeuse', 'salon')
+
+    # Représentation textuelle de la relation, utile pour l’admin Django et les logs
+    def __str__(self):
+        return f"{self.coiffeuse.idTblUser.nom} travaille chez {self.salon.nom_salon}"
+########################################################################################################################
+
+
+# class TblCoiffeuseSalon(models.Model):
+#     idCoiffeuseSalon = models.AutoField(primary_key=True)
+#     coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='emplois')
+#     salon = models.ForeignKey('TblSalon', on_delete=models.CASCADE, related_name='employes')
+#     est_proprietaire = models.BooleanField(default=False)
+#
+#     class Meta:
+#         unique_together = ('coiffeuse', 'salon')  # Éviter les doublons
+#
+#     def __str__(self):
+#         return f"{self.coiffeuse.idTblUser.nom} travaille chez {self.salon.nom_salon}"
 
 
 # ------------------------------------TblSalonImage---------------------------------------

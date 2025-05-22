@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
 from hairbnb.models import TblRendezVous, TblRendezVousService, TblPaiement,TblIndisponibilite
-from hairbnb.serializers.salon_services_serializers import ServiceSerializer, SalonSerializer
-from hairbnb.serializers.users_serializers import ClientSerializer, CoiffeuseSerializer
+from hairbnb.profil.profil_serializers import ClientSerializer, CoiffeuseSerializer
+from hairbnb.salon.salon_serializers import ServiceSerializer, SalonSerializer
 
 
 # 🔹 Serializer pour les services liés à un rendez-vous
