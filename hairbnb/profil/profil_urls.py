@@ -1,6 +1,6 @@
 from django.urls import path
 
-from hairbnb.profil.profil_views import get_user_profile, update_user_phone, update_user_address
+from hairbnb.profil.profil_views import get_user_profile, update_user_phone, update_user_address, create_user_profile
 
 urlpatterns = [
 

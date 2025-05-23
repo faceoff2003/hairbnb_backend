@@ -90,24 +90,30 @@ def get_user_profile(request, userUuid):
             "trace": traceback_str
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# Si vous avez un décorateur pour l'authentification Firebase, importez-le ici.
+# Exemple : from your_app.decorators import firebase_authenticated
+
+
 @csrf_exempt
 @api_view(['POST'])
-#@firebase_authenticated
+# Le décorateur @firebase_authenticated ne doit PAS être actif pour cette vue.
+# Cette vue est destinée à CRÉER le profil utilisateur dans la base de données Django,
+# donc l'utilisateur n'existe pas encore dans Django à ce stade.
+# L'authentification Firebase (validation du token) est gérée par Firebase lui-même,
+# mais la recherche d'un profil Django existant doit être évitée ici.
+# @firebase_authenticated
 def create_user_profile(request):
     """
-    Vue POO pour créer un profil utilisateur complet.
-    Utilise un serializer pour validation et création.
+    Vue API pour créer un profil utilisateur complet (client ou coiffeuse).
+    Elle utilise UserCreationSerializer pour valider les données et créer les objets associés.
     """
     try:
-        # Créer le serializer avec les données de la requête
         serializer = UserCreationSerializer(data=request.data)
 
-        # Validation des données
         if serializer.is_valid():
-            # Création de l'utilisateur via le serializer
             user = serializer.save()
 
-            # Réponse de succès avec les données sérialisées
             return Response({
                 "status": "success",
                 "message": "Profil créé avec succès!",
@@ -115,7 +121,6 @@ def create_user_profile(request):
             }, status=status.HTTP_201_CREATED)
 
         else:
-            # Erreurs de validation
             return Response({
                 "status": "error",
                 "message": "Erreurs de validation",
@@ -123,14 +128,160 @@ def create_user_profile(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
-        # Gestion des erreurs non prévues
-        print(f"Erreur dans create_user_profile: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"Erreur inattendue dans create_user_profile: {str(e)}")
+        print(f"Traceback complet:\n{traceback.format_exc()}")
 
         return Response({
             "status": "error",
-            "message": f"Erreur serveur: {str(e)}"
+            "message": f"Une erreur interne est survenue: {str(e)}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# @csrf_exempt # Permet les requêtes POST sans jeton CSRF (utile pour les API, mais à gérer avec prudence en production)
+# @api_view(['POST']) # Indique que cette fonction est une vue API qui accepte les requêtes POST
+# # @firebase_authenticated # Décommentez cette ligne si vous utilisez un décorateur d'authentification Firebase
+# def create_user_profile(request):
+#     """
+#     Vue API pour créer un profil utilisateur complet (client ou coiffeuse).
+#     Elle utilise UserCreationSerializer pour valider les données et créer les objets associés.
+#     """
+#     try:
+#         # Initialise le serializer avec les données reçues dans la requête.
+#         # request.data gère automatiquement les données de formulaire, JSON, etc.
+#         serializer = UserCreationSerializer(data=request.data)
+#
+#         # Valide les données selon les règles définies dans le serializer.
+#         if serializer.is_valid():
+#             # Si les données sont valides, appelle la méthode .save() du serializer.
+#             # Cette méthode va exécuter la logique de création définie dans le serializer (méthode create()).
+#             user = serializer.save()
+#
+#             # En cas de succès, renvoie une réponse HTTP 201 Created.
+#             # Le champ 'data' contient la représentation de l'utilisateur créé,
+#             # telle que définie par la méthode to_representation() du serializer.
+#             return Response({
+#                 "status": "success",
+#                 "message": "Profil créé avec succès!",
+#                 "data": serializer.to_representation(user)
+#             }, status=status.HTTP_201_CREATED)
+#
+#         else:
+#             # Si la validation échoue, les erreurs sont accessibles via serializer.errors.
+#             # Ces erreurs sont formatées et renvoyées avec un statut 400 Bad Request.
+#             return Response({
+#                 "status": "error",
+#                 "message": "Erreurs de validation",
+#                 "errors": serializer.errors
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#     except Exception as e:
+#         # Capture toute exception inattendue qui pourrait survenir pendant le processus.
+#         # Affiche l'erreur et la trace complète dans la console du serveur pour le débogage.
+#         print(f"Erreur inattendue dans create_user_profile: {str(e)}")
+#         print(f"Traceback complet:\n{traceback.format_exc()}")
+#
+#         # Renvoie une réponse d'erreur générique avec un statut 500 Internal Server Error.
+#         return Response({
+#             "status": "error",
+#             "message": f"Une erreur interne est survenue: {str(e)}"
+#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+# @csrf_exempt
+# @api_view(['POST'])
+# # @firebase_authenticated  # Décommentez cette ligne si vous avez un décorateur d'authentification Firebase
+# def create_user_profile(request):
+#     """
+#     Vue API pour créer un profil utilisateur complet (client ou coiffeuse).
+#     Elle utilise UserCreationSerializer pour valider les données et créer les objets associés.
+#     """
+#     try:
+#         # Le serializer est créé avec les données de la requête.
+#         # request.data gère automatiquement les données de formulaire, JSON, etc.
+#         serializer = UserCreationSerializer(data=request.data)
+#
+#         # La méthode is_valid() lance les validations définies dans le serializer.
+#         if serializer.is_valid():
+#             # La méthode .save() du serializer appelle la méthode create()
+#             # que vous avez définie dans UserCreationSerializer.
+#             user = serializer.save()
+#
+#             # Réponse de succès. Les données de l'utilisateur créé sont renvoyées via to_representation.
+#             return Response({
+#                 "status": "success",
+#                 "message": "Profil créé avec succès!",
+#                 "data": serializer.to_representation(user)
+#             }, status=status.HTTP_201_CREATED)
+#
+#         else:
+#             # Si la validation échoue, les erreurs sont accessibles via serializer.errors.
+#             # Ces erreurs sont formatées et renvoyées avec un statut 400 Bad Request.
+#             return Response({
+#                 "status": "error",
+#                 "message": "Erreurs de validation",
+#                 "errors": serializer.errors
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#     except Exception as e:
+#         # Gestion des erreurs imprévues.
+#         # Il est bon de logger l'erreur et la trace complète pour le débogage.
+#         print(f"Erreur inattendue dans create_user_profile: {str(e)}")
+#         print(f"Traceback complet:\n{traceback.format_exc()}")
+#
+#         # Renvoie une réponse d'erreur générique avec un statut 500 Internal Server Error.
+#         return Response({
+#             "status": "error",
+#             "message": f"Une erreur interne est survenue: {str(e)}"
+#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+
+
+
+# @csrf_exempt
+# @api_view(['POST'])
+# #@firebase_authenticated
+# def create_user_profile(request):
+#     """
+#     Vue POO pour créer un profil utilisateur complet.
+#     Utilise un serializer pour validation et création.
+#     """
+#     try:
+#         # Créer le serializer avec les données de la requête
+#         serializer = UserCreationSerializer(data=request.data)
+#
+#         # Validation des données
+#         if serializer.is_valid():
+#             # Création de l'utilisateur via le serializer
+#             user = serializer.save()
+#
+#             # Réponse de succès avec les données sérialisées
+#             return Response({
+#                 "status": "success",
+#                 "message": "Profil créé avec succès!",
+#                 "data": serializer.to_representation(user)
+#             }, status=status.HTTP_201_CREATED)
+#
+#         else:
+#             # Erreurs de validation
+#             return Response({
+#                 "status": "error",
+#                 "message": "Erreurs de validation",
+#                 "errors": serializer.errors
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#
+#     except Exception as e:
+#         # Gestion des erreurs non prévues
+#         print(f"Erreur dans create_user_profile: {str(e)}")
+#         print(f"Traceback: {traceback.format_exc()}")
+#
+#         return Response({
+#             "status": "error",
+#             "message": f"Erreur serveur: {str(e)}"
+#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # @csrf_exempt

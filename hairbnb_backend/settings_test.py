@@ -126,7 +126,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.country_restriction.CountryRestrictionMiddleware',
-    'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
+    # 'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
     'middleware.bypass_csrf_middleware.BypassCSRFMiddleware',
     'middleware.block_malicious_requests_middleware.BlockMaliciousRequestsMiddleware',
 ]
@@ -256,7 +256,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:3000",
-    # "http://localhost:50734",
+    "http://localhost:57365",
     "http://127.0.0.1:8080",
     "http://hairbnb.site",
     "http://www.hairbnb.site",
@@ -265,7 +265,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://91.86.53.160"
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site","http://localhost:53655",]
+CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site","http://localhost:57365",]
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -1,17 +1,14 @@
 import logging
 from datetime import datetime
-from django.core.validators import validate_email
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views import View
+
 import json
 from hairbnb.models import TblAdresse, TblRue, TblLocalite, TblCoiffeuse, TblClient, TblUser, TblServiceTemps, TblServicePrix, \
-    TblPrix, TblTemps, TblService, TblSalon, TblSalonService
+    TblPrix, TblTemps, TblService, TblSalon
 from hairbnb.services.geolocation_service import GeolocationService
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
 
 
 def home(request):
@@ -27,101 +24,101 @@ def home(request):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-def create_user_profile(request):
-    """
-    Crée un profil utilisateur en fonction des données envoyées via une requête POST.
-    """
-    if request.method == 'POST':
-        try:
-            # Vérifiez si la requête contient des fichiers (multipart/form-data)
-            if request.content_type.startswith('multipart/form-data'):
-                # Utilisez request.POST et request.FILES
-                data = request.POST
-                photo_profil = request.FILES.get('photo_profil')
-            else:
-                # Sinon, lisez les données JSON dans request.body
-                data = json.loads(request.body)
-                photo_profil = None
-
-            # Debugging: Afficher les données reçues
-            print("Données reçues :", data)
-            print("Fichiers reçus :", request.FILES)
-
-            # Champs obligatoires pour tous les utilisateurs
-            required_fields = [
-                'userUuid', 'email', 'role', 'nom', 'prenom', 'sexe',
-                'telephone', 'code_postal', 'commune', 'rue', 'numero', 'date_naissance'
-            ]
-            for field in required_fields:
-                if not data.get(field):
-                    return JsonResponse({"status": "error", "message": f"Le champ {field} est obligatoire."}, status=400)
-
-            # Validation spécifique pour la date de naissance
-            try:
-                date_naissance = datetime.strptime(data['date_naissance'], '%d-%m-%Y').date()
-            except ValueError:
-                return JsonResponse(
-                    {"status": "error", "message": "Le format de la date de naissance doit être DD-MM-YYYY."},
-                    status=400,
-                )
-
-            # Vérifier si l'utilisateur existe déjà
-            user_uuid = data['userUuid']
-            if TblUser.objects.filter(uuid=user_uuid).exists():
-                return JsonResponse({"status": "error", "message": "Utilisateur déjà existant"}, status=400)
-
-            # Étape 2 : Gérer l'adresse
-            localite, _ = TblLocalite.objects.get_or_create(
-                commune=data['commune'], code_postal=data['code_postal']
-            )
-            rue_obj, _ = TblRue.objects.get_or_create(nom_rue=data['rue'], localite=localite)
-            adresse = TblAdresse.objects.create(
-                numero=data['numero'], boite_postale=data.get('boite_postale', None), rue=rue_obj
-            )
-
-            # Étape 3 : Calculer les coordonnées géographiques avec le service
-            adresse_complete = f"{data['numero']}, {data['rue']}, {data['commune']}, {data['code_postal']}"
-            latitude, longitude = GeolocationService.geocode_address(adresse_complete)
-
-            # Étape 4 : Créer un utilisateur de base
-            user = TblUser.objects.create(
-                uuid=user_uuid,
-                nom=data['nom'],
-                prenom=data['prenom'],
-                email=data['email'],
-                type=data['role'],
-                sexe=data['sexe'],
-                numero_telephone=data['telephone'],
-                adresse=adresse,
-                date_naissance=date_naissance,
-                photo_profil=photo_profil  # Ajouter la photo de profil si elle existe
-            )
-
-            # Étape 5 : Gérer les rôles spécifiques
-            if data['role'] == 'coiffeuse':
-                TblCoiffeuse.objects.create(
-                    idTblUser=user,
-                    denomination_sociale=data.get('denomination_sociale'),
-                    tva=data.get('tva'),
-                    position=f"{latitude}, {longitude}" if latitude and longitude else None,
-
-                )
-            elif data['role'] == 'client':
-                TblClient.objects.create(
-                    idTblUser=user
-                )
-
-            # Réponse de succès
-            return JsonResponse({"status": "success", "message": "Profil créé avec succès!"}, status=201)
-
-        except Exception as e:
-            # Gestion des erreurs générales
-            print(f"Erreur : {str(e)}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
-
-#*************************************************************************************************************
+# def create_user_profile(request):
+#     """
+#     Crée un profil utilisateur en fonction des données envoyées via une requête POST.
+#     """
+#     if request.method == 'POST':
+#         try:
+#             # Vérifiez si la requête contient des fichiers (multipart/form-data)
+#             if request.content_type.startswith('multipart/form-data'):
+#                 # Utilisez request.POST et request.FILES
+#                 data = request.POST
+#                 photo_profil = request.FILES.get('photo_profil')
+#             else:
+#                 # Sinon, lisez les données JSON dans request.body
+#                 data = json.loads(request.body)
+#                 photo_profil = None
+#
+#             # Debugging: Afficher les données reçues
+#             print("Données reçues :", data)
+#             print("Fichiers reçus :", request.FILES)
+#
+#             # Champs obligatoires pour tous les utilisateurs
+#             required_fields = [
+#                 'userUuid', 'email', 'role', 'nom', 'prenom', 'sexe',
+#                 'telephone', 'code_postal', 'commune', 'rue', 'numero', 'date_naissance'
+#             ]
+#             for field in required_fields:
+#                 if not data.get(field):
+#                     return JsonResponse({"status": "error", "message": f"Le champ {field} est obligatoire."}, status=400)
+#
+#             # Validation spécifique pour la date de naissance
+#             try:
+#                 date_naissance = datetime.strptime(data['date_naissance'], '%d-%m-%Y').date()
+#             except ValueError:
+#                 return JsonResponse(
+#                     {"status": "error", "message": "Le format de la date de naissance doit être DD-MM-YYYY."},
+#                     status=400,
+#                 )
+#
+#             # Vérifier si l'utilisateur existe déjà
+#             user_uuid = data['userUuid']
+#             if TblUser.objects.filter(uuid=user_uuid).exists():
+#                 return JsonResponse({"status": "error", "message": "Utilisateur déjà existant"}, status=400)
+#
+#             # Étape 2 : Gérer l'adresse
+#             localite, _ = TblLocalite.objects.get_or_create(
+#                 commune=data['commune'], code_postal=data['code_postal']
+#             )
+#             rue_obj, _ = TblRue.objects.get_or_create(nom_rue=data['rue'], localite=localite)
+#             adresse = TblAdresse.objects.create(
+#                 numero=data['numero'], boite_postale=data.get('boite_postale', None), rue=rue_obj
+#             )
+#
+#             # Étape 3 : Calculer les coordonnées géographiques avec le service
+#             adresse_complete = f"{data['numero']}, {data['rue']}, {data['commune']}, {data['code_postal']}"
+#             latitude, longitude = GeolocationService.geocode_address(adresse_complete)
+#
+#             # Étape 4 : Créer un utilisateur de base
+#             user = TblUser.objects.create(
+#                 uuid=user_uuid,
+#                 nom=data['nom'],
+#                 prenom=data['prenom'],
+#                 email=data['email'],
+#                 type=data['role'],
+#                 sexe=data['sexe'],
+#                 numero_telephone=data['telephone'],
+#                 adresse=adresse,
+#                 date_naissance=date_naissance,
+#                 photo_profil=photo_profil  # Ajouter la photo de profil si elle existe
+#             )
+#
+#             # Étape 5 : Gérer les rôles spécifiques
+#             if data['role'] == 'coiffeuse':
+#                 TblCoiffeuse.objects.create(
+#                     idTblUser=user,
+#                     denomination_sociale=data.get('denomination_sociale'),
+#                     tva=data.get('tva'),
+#                     position=f"{latitude}, {longitude}" if latitude and longitude else None,
+#
+#                 )
+#             elif data['role'] == 'client':
+#                 TblClient.objects.create(
+#                     idTblUser=user
+#                 )
+#
+#             # Réponse de succès
+#             return JsonResponse({"status": "success", "message": "Profil créé avec succès!"}, status=201)
+#
+#         except Exception as e:
+#             # Gestion des erreurs générales
+#             print(f"Erreur : {str(e)}")
+#             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+#
+#     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+#
+# #*************************************************************************************************************
 
 
 #////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
