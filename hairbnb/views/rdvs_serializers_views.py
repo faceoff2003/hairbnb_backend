@@ -37,7 +37,12 @@ def create_rendez_vous(request):
         coiffeuse = get_object_or_404(TblCoiffeuse, idTblUser=coiffeuse_id)
 
         # ✅ Récupère automatiquement l'ID du salon à partir de la coiffeuse
-        salon = get_object_or_404(TblSalon, coiffeuse=coiffeuse)
+        #salon = get_object_or_404(TblSalon, coiffeuse=coiffeuse)
+
+        # ✅LOGIQUE COMPLÈTE ET SÉCURISÉE ✅
+        salon = coiffeuse.salons.first()
+        if not salon:
+            return Response({"error": "La coiffeuse n'est associée à aucun salon."}, status=404)
 
         #print(f"✅ Client trouvé: {client}")
         #print(f"✅ Coiffeuse trouvée: {coiffeuse}")

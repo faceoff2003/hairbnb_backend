@@ -40,4 +40,6 @@ urlpatterns = [
     path('api/', include('hairbnb.salon_services.salon_services_urls')),  # Inclure les routes de salon_services_urls.py
     path('api/', include('hairbnb.salon_services.category_services.category_urls')),  # Inclure les routes de category_urls.py
     path('api/', include('hairbnb.salon_geolocalisation.salon_geolocalisation_urls')),  # Inclure les routes de salon_geolocalisation_urls.py
+    path('api/', include('hairbnb.dispinibilites.disponibilite_urls')),  # Inclure les routes de disponibilites_urls.py
+    path('api/', include('hairbnb.ai_service.coiffeuse_ai.coiffeuse_ai_urls')),  # Inclure les routes de coiffeuse_ai_urls.py
 ]
