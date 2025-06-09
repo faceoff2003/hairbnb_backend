@@ -2,50 +2,49 @@ from datetime import datetime
 
 from django.utils.timezone import make_aware
 from rest_framework.decorators import api_view
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from hairbnb.business.business_logic import ServiceData, SalonData
+from hairbnb.business.business_logic import ServiceData
 from hairbnb.models import TblService, TblSalonService, TblSalon, TblTemps, TblPrix, TblServicePrix, \
-    TblServiceTemps, TblPromotion, TblCoiffeuse, TblCoiffeuseSalon
+    TblServiceTemps, TblPromotion
 
 
-@api_view(['GET'])
-def get_services_by_coiffeuse(request, coiffeuse_id):
-    try:
-        coiffeuse = TblCoiffeuse.objects.get(idTblUser_id=coiffeuse_id)
-        salon_relation = TblCoiffeuseSalon.objects.filter(
-            coiffeuse=coiffeuse,
-            est_proprietaire=True
-        ).first()
-        salon = salon_relation.salon
-
-        # Liste triée des services (via la table de jonction)
-        salon_services_qs = TblSalonService.objects.filter(salon=salon).order_by('service__intitule_service')
-
-        # Vérifie si pagination activée
-        page = request.GET.get('page')
-        page_size = request.GET.get('page_size')
-
-        if page and page_size:
-            paginator = PageNumberPagination()
-            paginator.page_size = int(page_size)
-            result_page = paginator.paginate_queryset(salon_services_qs, request)
-
-            # Sérialisation uniquement des services paginés
-            salon_data = SalonData(salon, filtered_services=result_page).to_dict()
-
-            return paginator.get_paginated_response({
-                "status": "success",
-                "salon": salon_data
-            })
-        else:
-            # Retourne tous les services sans pagination
-            salon_data = SalonData(salon).to_dict()
-            return Response({"status": "success", "salon": salon_data}, status=200)
-
-    except TblSalon.DoesNotExist:
-        return Response({"status": "error", "message": "Aucun salon trouvé pour cette coiffeuse."}, status=404)
+# @api_view(['GET'])
+# def get_services_by_coiffeuse(request, coiffeuse_id):
+#     try:
+#         coiffeuse = TblCoiffeuse.objects.get(idTblUser_id=coiffeuse_id)
+#         salon_relation = TblCoiffeuseSalon.objects.filter(
+#             coiffeuse=coiffeuse,
+#             est_proprietaire=True
+#         ).first()
+#         salon = salon_relation.salon
+#
+#         # Liste triée des services (via la table de jonction)
+#         salon_services_qs = TblSalonService.objects.filter(salon=salon).order_by('service__intitule_service')
+#
+#         # Vérifie si pagination activée
+#         page = request.GET.get('page')
+#         page_size = request.GET.get('page_size')
+#
+#         if page and page_size:
+#             paginator = PageNumberPagination()
+#             paginator.page_size = int(page_size)
+#             result_page = paginator.paginate_queryset(salon_services_qs, request)
+#
+#             # Sérialisation uniquement des services paginés
+#             salon_data = SalonData(salon, filtered_services=result_page).to_dict()
+#
+#             return paginator.get_paginated_response({
+#                 "status": "success",
+#                 "salon": salon_data
+#             })
+#         else:
+#             # Retourne tous les services sans pagination
+#             salon_data = SalonData(salon).to_dict()
+#             return Response({"status": "success", "salon": salon_data}, status=200)
+#
+#     except TblSalon.DoesNotExist:
+#         return Response({"status": "error", "message": "Aucun salon trouvé pour cette coiffeuse."}, status=404)
 
 
 
@@ -104,36 +103,36 @@ def add_service_to_coiffeuse(request, coiffeuse_id):
 
 
 
-# ✅ Modifier un service
-@api_view(['PUT'])
-def update_service(request, service_id):
-    try:
-        service = TblService.objects.get(idTblService=service_id)
-
-        # Extraire le temps et le prix
-        temps_minutes = request.data.pop('temps', None)
-        prix_montant = request.data.pop('prix', None)
-
-        for key, value in request.data.items():
-            setattr(service, key, value)
-        service.save()
-
-        # Mettre à jour le temps et le prix
-        # ✅ Gestion du temps (évite les doublons)
-        if temps_minutes:
-            temps, _ = TblTemps.objects.get_or_create(minutes=temps_minutes)
-            TblServiceTemps.objects.update_or_create(service=service, defaults={'temps': temps})
-
-        # ✅ Gestion du prix (évite les doublons)
-        if prix_montant:
-            prix_obj, created = TblPrix.objects.get_or_create(prix=prix_montant)
-            TblServicePrix.objects.update_or_create(service=service, defaults={'prix': prix_obj})
-
-
-        return Response({"status": "success", "message": "Service mis à jour."}, status=200)
-
-    except TblService.DoesNotExist:
-        return Response({"status": "error", "message": "Service introuvable."}, status=404)
+# # ✅ Modifier un service
+# @api_view(['PUT'])
+# def update_service(request, service_id):
+#     try:
+#         service = TblService.objects.get(idTblService=service_id)
+#
+#         # Extraire le temps et le prix
+#         temps_minutes = request.data.pop('temps', None)
+#         prix_montant = request.data.pop('prix', None)
+#
+#         for key, value in request.data.items():
+#             setattr(service, key, value)
+#         service.save()
+#
+#         # Mettre à jour le temps et le prix
+#         # ✅ Gestion du temps (évite les doublons)
+#         if temps_minutes:
+#             temps, _ = TblTemps.objects.get_or_create(minutes=temps_minutes)
+#             TblServiceTemps.objects.update_or_create(service=service, defaults={'temps': temps})
+#
+#         # ✅ Gestion du prix (évite les doublons)
+#         if prix_montant:
+#             prix_obj, created = TblPrix.objects.get_or_create(prix=prix_montant)
+#             TblServicePrix.objects.update_or_create(service=service, defaults={'prix': prix_obj})
+#
+#
+#         return Response({"status": "success", "message": "Service mis à jour."}, status=200)
+#
+#     except TblService.DoesNotExist:
+#         return Response({"status": "error", "message": "Service introuvable."}, status=404)
 
 
 # ✅ Supprimer un service
@@ -148,54 +147,142 @@ def delete_service(request, service_id):
         return Response({"status": "error", "message": "Service introuvable."}, status=404)
 
 
-@api_view(['POST'])
-def create_promotion(request, service_id):
-    try:
-        print("📥 Données reçues :", request.data)  # 🔥 DEBUG
-        service = TblService.objects.get(idTblService=service_id)
+# @api_view(['POST'])
+# def create_promotion(request, service_id):
+#     try:
+#         print("📥 Données reçues :", request.data)  # 🔥 DEBUG
+#
+#         # Récupérer le service
+#         service = TblService.objects.get(idTblService=service_id)
+#
+#         # Récupérer les données de la nouvelle promotion
+#         discount_percentage = request.data.get("discount_percentage")
+#         start_date_str = request.data.get("start_date")
+#         end_date_str = request.data.get("end_date")
+#         salon_id = request.data.get("salon_id")  # 🔥 NOUVEAU : Récupération de l'ID salon
+#
+#         # Vérifier que les champs sont bien remplis
+#         if not discount_percentage or not end_date_str or not salon_id:
+#             return Response({
+#                 "error": "Le pourcentage, la date de fin et l'ID du salon sont obligatoires."
+#             }, status=400)
+#
+#         # Récupérer l'objet salon
+#         try:
+#             salon = TblSalon.objects.get(idTblSalon=salon_id)
+#         except TblSalon.DoesNotExist:
+#             return Response({"error": "Salon introuvable."}, status=404)
+#
+#         # Conversion des dates
+#         start_date = make_aware(datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d"))
+#         end_date = make_aware(datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d"))
+#
+#         # 🔥 MISE À JOUR : Vérifier s'il existe déjà une promotion qui chevauche cette période
+#         # pour ce service ET ce salon spécifiquement
+#         existing_promotions = TblPromotion.objects.filter(
+#             service=service,
+#             salon=salon  # 🔥 NOUVEAU : Filtrer aussi par salon
+#         )
+#
+#         # Une promotion chevauche si:
+#         # - Sa date de début est <= à la date de fin de la nouvelle promo ET
+#         # - Sa date de fin est >= à la date de début de la nouvelle promo
+#         overlapping_promotions = existing_promotions.filter(
+#             start_date__lte=end_date,
+#             end_date__gte=start_date
+#         )
+#
+#         if overlapping_promotions.exists():
+#             return Response({
+#                 "error": f"Il existe déjà une promotion active pour ce service dans le salon {salon.nom_salon} durant cette période. Veuillez choisir des dates qui ne chevauchent pas d'autres promotions."
+#             }, status=400)
+#
+#         print(
+#             f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date} | Salon: {salon.nom_salon}")  # 🔥 DEBUG
+#
+#         # 🔥 MISE À JOUR : Créer la promotion avec le salon
+#         promotion = TblPromotion.objects.create(
+#             salon=salon,  # 🔥 NOUVEAU : Ajouter le salon
+#             service=service,
+#             discount_percentage=float(discount_percentage),
+#             start_date=start_date,
+#             end_date=end_date
+#         )
+#
+#         # Récupérer les données du service pour la réponse
+#         service_data = ServiceData(service).to_dict()
+#
+#         return Response({
+#             "message": f"Promotion créée avec succès pour le salon {salon.nom_salon}.",
+#             "service": service_data,
+#             "promotion": {
+#                 "id": promotion.idPromotion,
+#                 "salon_id": salon.idTblSalon,
+#                 "salon_nom": salon.nom_salon,
+#                 "discount_percentage": promotion.discount_percentage,
+#                 "start_date": promotion.start_date.isoformat(),
+#                 "end_date": promotion.end_date.isoformat(),
+#                 "is_active": promotion.is_active()
+#             }
+#         }, status=201)
+#
+#     except TblService.DoesNotExist:
+#         return Response({"error": "Service introuvable."}, status=404)
+#     except Exception as e:
+#         print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
+#         return Response({"error": str(e)}, status=500)
 
-        # Récupérer les données de la nouvelle promotion
-        discount_percentage = request.data.get("discount_percentage")
-        start_date_str = request.data.get("start_date")
-        end_date_str = request.data.get("end_date")
 
-        # Vérifier que les champs sont bien remplis
-        if not discount_percentage or not end_date_str:
-            return Response({"error": "Le pourcentage et la date de fin sont obligatoires."}, status=400)
 
-        # Conversion des dates
-        start_date = make_aware(datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d"))
-        end_date = make_aware(datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d"))
 
-        # Vérifier s'il existe déjà une promotion qui chevauche cette période
-        existing_promotions = TblPromotion.objects.filter(service=service)
-
-        # Une promotion chevauche si:
-        # - Sa date de début est <= à la date de fin de la nouvelle promo ET
-        # - Sa date de fin est >= à la date de début de la nouvelle promo
-        overlapping_promotions = existing_promotions.filter(
-            start_date__lte=end_date,
-            end_date__gte=start_date
-        )
-
-        if overlapping_promotions.exists():
-            return Response({
-                "error": "Il existe déjà une promotion active durant cette période. Veuillez choisir des dates qui ne chevauchent pas d'autres promotions."
-            }, status=400)
-
-        print(f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date}")  # 🔥 DEBUG
-
-        # Créer la promotion
-        promotion = TblPromotion.objects.create(
-            service=service,
-            discount_percentage=float(discount_percentage),
-            start_date=start_date,
-            end_date=end_date
-        )
-        service_data = ServiceData(service).to_dict()
-        return Response({"message": "Promotion créée avec succès.", "service": service_data}, status=201)
-    except TblService.DoesNotExist:
-        return Response({"error": "Service introuvable."}, status=404)
-    except Exception as e:
-        print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
-        return Response({"error": str(e)}, status=500)
+# @api_view(['POST'])
+# def create_promotion(request, service_id):
+#     try:
+#         print("📥 Données reçues :", request.data)  # 🔥 DEBUG
+#         service = TblService.objects.get(idTblService=service_id)
+#
+#         # Récupérer les données de la nouvelle promotion
+#         discount_percentage = request.data.get("discount_percentage")
+#         start_date_str = request.data.get("start_date")
+#         end_date_str = request.data.get("end_date")
+#
+#         # Vérifier que les champs sont bien remplis
+#         if not discount_percentage or not end_date_str:
+#             return Response({"error": "Le pourcentage et la date de fin sont obligatoires."}, status=400)
+#
+#         # Conversion des dates
+#         start_date = make_aware(datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d"))
+#         end_date = make_aware(datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d"))
+#
+#         # Vérifier s'il existe déjà une promotion qui chevauche cette période
+#         existing_promotions = TblPromotion.objects.filter(service=service)
+#
+#         # Une promotion chevauche si:
+#         # - Sa date de début est <= à la date de fin de la nouvelle promo ET
+#         # - Sa date de fin est >= à la date de début de la nouvelle promo
+#         overlapping_promotions = existing_promotions.filter(
+#             start_date__lte=end_date,
+#             end_date__gte=start_date
+#         )
+#
+#         if overlapping_promotions.exists():
+#             return Response({
+#                 "error": "Il existe déjà une promotion active durant cette période. Veuillez choisir des dates qui ne chevauchent pas d'autres promotions."
+#             }, status=400)
+#
+#         print(f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date}")  # 🔥 DEBUG
+#
+#         # Créer la promotion
+#         promotion = TblPromotion.objects.create(
+#             service=service,
+#             discount_percentage=float(discount_percentage),
+#             start_date=start_date,
+#             end_date=end_date
+#         )
+#         service_data = ServiceData(service).to_dict()
+#         return Response({"message": "Promotion créée avec succès.", "service": service_data}, status=201)
+#     except TblService.DoesNotExist:
+#         return Response({"error": "Service introuvable."}, status=404)
+#     except Exception as e:
+#         print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
+#         return Response({"error": str(e)}, status=500)

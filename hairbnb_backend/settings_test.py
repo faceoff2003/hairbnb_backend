@@ -126,7 +126,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'middleware.country_restriction.CountryRestrictionMiddleware',
-    # 'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
+    'middleware.firebase_auth_middleware.FirebaseAuthMiddleware',
     'middleware.bypass_csrf_middleware.BypassCSRFMiddleware',
     'middleware.block_malicious_requests_middleware.BlockMaliciousRequestsMiddleware',
 ]

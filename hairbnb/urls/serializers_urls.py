@@ -11,9 +11,7 @@ from hairbnb.views.indisponibilite_coiffeuse_views import get_indisponibilites, 
     delete_indisponibilite, add_indisponibilite
 #from hairbnb.payment.paiement_serializerss import create_payment_intent
 from hairbnb.views.rdvs_serializers_views import create_rendez_vous
-from hairbnb.views.salon_serializers_views import ajout_salon_serializer_view
-from hairbnb.views.salon_services_serializers_views import get_services_by_coiffeuse, \
-    update_service, delete_service, add_service_to_coiffeuse
+from hairbnb.views.salon_services_serializers_views import delete_service, add_service_to_coiffeuse
 from hairbnb.views.users_serializers_views import get_coiffeuse_by_uuid, get_client_by_uuid, update_coiffeuse, \
     update_client
 
@@ -22,9 +20,9 @@ urlpatterns = [
     path('get_client_by_uuid/<str:uuid>/', get_client_by_uuid, name='get_client_by_uuid'),
     path('update_coiffeuse/<str:uuid>/', update_coiffeuse, name='update_coiffeuse'),
     path('update_client/<str:uuid>/', update_client, name='update_client'),
-    path('get_services_by_coiffeuse/<int:coiffeuse_id>/', get_services_by_coiffeuse, name='get_services_by_coiffeuse'),
+    # path('get_services_by_coiffeuse/<int:coiffeuse_id>/', get_services_by_coiffeuse, name='get_services_by_coiffeuse'),
     path('add_service_to_coiffeuse/<int:coiffeuse_id>/', add_service_to_coiffeuse, name='add_service_to_coiffeuse'),
-    path('update_service/<int:service_id>/', update_service, name='update_service'),
+    # path('update_service/<int:service_id>/', update_service, name='update_service'),
     path('delete_service/<int:service_id>/', delete_service, name='delete_service'),
     path('coiffeuses_proches/', coiffeuses_proches, name='coiffeuses_proches'),
     #path('get_current_user/<str:uuid>/', get_current_user, name='get_current_user'),
@@ -47,7 +45,7 @@ urlpatterns = [
     path('get_rendezvous_by_coiffeuse_id/<int:coiffeuse_id>/', get_rendezvous_by_coiffeuse_id, name='get_rendezvous_by_coiffeuse_id'),
     path('get_archived_rendezvous_by_coiffeuse_id/<int:coiffeuse_id>/',
      get_archived_rendezvous_by_coiffeuse_id,name='get_archived_rendezvous_by_coiffeuse_id'),
-    path('ajout_salon_serializer_view/', ajout_salon_serializer_view, name='ajout_salon'),
+    # path('ajout_salon_serializer_view/', ajout_salon_serializer_view, name='ajout_salon'),
     #path('get_salon_by_coiffeuse/<int:coiffeuse_id>/', get_salon_by_coiffeuse, name='get_salon_by_coiffeuse'),
     # path('add_images_to_salon/', add_images_to_salon, name='add_images_to_salon'),
 ]

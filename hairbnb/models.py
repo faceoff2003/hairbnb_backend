@@ -20,7 +20,7 @@ class TblLocalite(models.Model):
 # Table pour gérer les rues
 class TblRue(models.Model):
     idTblRue = models.AutoField(primary_key=True)
-    nom_rue = models.CharField(max_length=100)
+    nom_rue = models.CharField(max_length=50)
     localite = models.ForeignKey(
         TblLocalite,
         on_delete=models.PROTECT,  # Empêche suppression si des rues l'utilisent
@@ -80,10 +80,10 @@ class TblUser(models.Model):
     uuid = models.CharField(max_length=40, unique=True)
 
     # Nom de famille de l'utilisateur
-    nom = models.CharField(max_length=50)
+    nom = models.CharField(max_length=20)
 
     # Prénom de l'utilisateur
-    prenom = models.CharField(max_length=50)
+    prenom = models.CharField(max_length=20)
 
     # Adresse e-mail de l'utilisateur (doit être unique)
     email = models.EmailField(unique=True)
@@ -108,9 +108,9 @@ class TblUser(models.Model):
     # Photo de profil de l'utilisateur (champ image avec une valeur par défaut)
     photo_profil = models.ImageField(
         upload_to='photos/profils/',
-        null=True,
-        blank=True,
-        default='photos/defaults/avatar.png'
+        null=False,
+        blank=False,
+        default='assets/logo_login/avatar.png'
     )
 
     # Rôle attribué à l'utilisateur (clé étrangère vers la table TblRole)
@@ -155,67 +155,9 @@ class TblUser(models.Model):
         return self.sexe_ref.libelle if self.sexe_ref else 'Sexe inconnu'
 ################################################################################################################
 
-
-
-
-# class TblUser(models.Model):
-#         idTblUser = models.AutoField(primary_key=True)
-#         uuid = models.CharField(max_length=255, unique=True)
-#         nom = models.CharField(max_length=255)
-#         prenom = models.CharField(max_length=255)
-#         email = models.EmailField(unique=True)
-#         numero_telephone = models.CharField(max_length=15)
-#         date_naissance = models.DateField(null=True, blank=True)
-#         is_active = models.BooleanField(default=True)
-#         adresse = models.ForeignKey(
-#             'TblAdresse', on_delete=models.SET_NULL, null=True, related_name='utilisateurs'
-#         )
-#         photo_profil = models.ImageField(
-#             upload_to='photos/profils/',
-#             null=True,
-#             blank=True,
-#             default='photos/defaults/avatar.png'
-#         )
-#
-#         # ✅ Ajout de la clé étrangère vers TblRole
-#         role = models.ForeignKey(
-#             'TblRole',
-#             on_delete=models.SET_NULL,
-#             null=True,
-#             default=1,
-#             related_name='utilisateurs')
-#
-#         # Ajouter les nouveaux champs (noms temporaires)
-#         sexe_ref = models.ForeignKey(
-#             'TblSexe',
-#             on_delete=models.PROTECT,
-#             related_name='utilisateurs',
-#             null=True  # Important pour la migration progressive
-#         )
-#         type_ref = models.ForeignKey(
-#             'TblType',
-#             on_delete=models.PROTECT,
-#             related_name='utilisateurs',
-#             null=True  # Important pour la migration progressive
-#         )
-#
-#
-# def get_role(self):
-#     return self.role.nom if self.role else 'user'
-#
-# def get_type(self):
-#     return self.type_ref.libelle if self.type_ref else 'Type inconnu'
-#
-# def get_sexe(self):
-#     return self.sexe_ref.libelle if self.sexe_ref else 'Sexe inconnu'
-#
-# def __str__(self):
-#     return f"{self.nom} {self.prenom} ({self.get_type()} - {self.get_sexe()} - {self.get_role()})"
-
-
 class TblRole(models.Model):
     idTblRole = models.AutoField(primary_key=True)
-    nom = models.CharField(max_length=40, unique=True)  # Exemple: "admin", "user"
+    nom = models.CharField(max_length=12, unique=True)  # Exemple: "admin", "user"
 
     def __str__(self):
         return self.nom
@@ -254,15 +196,6 @@ class TblCoiffeuse(models.Model):
         blank=True,
         null=True
     )
-
-    # # Lien optionnel vers un numéro de TVA (via clé étrangère)
-    # numero_tva = models.ForeignKey(
-    #     'TblNumeroTVA',
-    #     on_delete=models.SET_NULL,    # Si le numéro est supprimé, on met à null
-    #     null=True,
-    #     blank=True,
-    #     related_name='coiffeuses'     # Accès inverse via numero_tva.coiffeuses.all()
-    # )
 
     # Métadonnées pour une meilleure lisibilité dans l’admin Django
     class Meta:
@@ -336,12 +269,24 @@ class TblService(models.Model):
     intitule_service = models.CharField(max_length=100)
     description = models.TextField(validators=[MaxLengthValidator(600)])
 
-    # description = models.TextField()
+    categorie = models.ForeignKey('TblCategorie', on_delete=models.PROTECT, null=True, blank=True)
+
 
     def __str__(self):
-        return f"{self.intitule_service} €"
+        return f"{self.intitule_service, self.description} €"
 
+################################################################################################################
+#################             Modèle représentant les catégires des services            ########################
+################################################################################################################
 
+class TblCategorie(models.Model):
+    idTblCategorie = models.AutoField(primary_key=True)
+    intitule_categorie = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.intitule_categorie
+
+################################################################################################################
 ################################################################################################################
 #################               Modèle représentant un salon de coiffure               #########################
 ################################################################################################################
@@ -554,19 +499,6 @@ class TblCoiffeuseSalon(models.Model):
 ########################################################################################################################
 
 
-# class TblCoiffeuseSalon(models.Model):
-#     idCoiffeuseSalon = models.AutoField(primary_key=True)
-#     coiffeuse = models.ForeignKey('TblCoiffeuse', on_delete=models.CASCADE, related_name='emplois')
-#     salon = models.ForeignKey('TblSalon', on_delete=models.CASCADE, related_name='employes')
-#     est_proprietaire = models.BooleanField(default=False)
-#
-#     class Meta:
-#         unique_together = ('coiffeuse', 'salon')  # Éviter les doublons
-#
-#     def __str__(self):
-#         return f"{self.coiffeuse.idTblUser.nom} travaille chez {self.salon.nom_salon}"
-
-
 # ------------------------------------TblSalonImage---------------------------------------
 
 class TblSalonImage(models.Model):
@@ -615,8 +547,7 @@ class TblSalonService(models.Model):
         unique_together = ('salon', 'service')  # Unicité entre un salon et un service
 
     def __str__(self):
-        return f"Service '{self.service.intitule_service}' pour le salon '{self.salon.coiffeuse.idTblUser.nom}'"
-
+        return f"Service '{self.service.intitule_service}' pour le salon '{self.salon.nom_salon}'"
 
 class TblServiceTemps(models.Model):
     idServiceTemps = models.AutoField(primary_key=True)
@@ -626,13 +557,22 @@ class TblServiceTemps(models.Model):
     temps = models.ForeignKey(
         TblTemps, on_delete=models.CASCADE, related_name="temps_services"
     )
+    # ✅ AJOUT : Salon avec null=True pour la migration
+    salon = models.ForeignKey(
+        TblSalon,
+        on_delete=models.CASCADE,
+        related_name="temps_services",
+        null=True,  # ✅ Permet la migration
+        blank=True  # ✅ Permet la migration
+    )
 
     class Meta:
-        unique_together = ('service', 'temps')
+        # ✅ Pas de contrainte pour le moment (on l'ajoutera après)
+        pass
 
     def __str__(self):
-        return f"Temps de {self.temps.minutes} minutes pour le service '{self.service.intitule_service}'"
-
+        salon_info = f" chez {self.salon.nom_salon}" if self.salon else " (salon non défini)"
+        return f"Durée de {self.temps.minutes}min pour '{self.service.intitule_service}'{salon_info}"
 
 class TblServicePrix(models.Model):
     idServicePrix = models.AutoField(primary_key=True)
@@ -642,12 +582,57 @@ class TblServicePrix(models.Model):
     prix = models.ForeignKey(
         TblPrix, on_delete=models.CASCADE, related_name="prix_services"
     )
+    # ✅ AJOUT : Salon avec null=True pour la migration
+    salon = models.ForeignKey(
+        TblSalon,
+        on_delete=models.CASCADE,
+        related_name="prix_services",
+        null=True,  # ✅ Permet la migration
+        blank=True  # ✅ Permet la migration
+    )
 
     class Meta:
-        unique_together = ('service',)  # Chaque service doit avoir une seule ligne dans TblServicePrix
+        # ✅ Pas de contrainte pour le moment (on l'ajoutera après)
+        pass
 
     def __str__(self):
-        return f"Prix de {self.prix.prix} € pour le service '{self.service.intitule_service}'"
+        salon_info = f" chez {self.salon.nom_salon}" if self.salon else " (salon non défini)"
+        return f"Prix de {self.prix.prix}€ pour '{self.service.intitule_service}'{salon_info}"
+
+
+
+
+
+# class TblServiceTemps(models.Model):
+#     idServiceTemps = models.AutoField(primary_key=True)
+#     service = models.ForeignKey(
+#         TblService, on_delete=models.CASCADE, related_name="service_temps"
+#     )
+#     temps = models.ForeignKey(
+#         TblTemps, on_delete=models.CASCADE, related_name="temps_services"
+#     )
+#
+#     class Meta:
+#         unique_together = ('service', 'temps')
+#
+#     def __str__(self):
+#         return f"Temps de {self.temps.minutes} minutes pour le service '{self.service.intitule_service}'"
+
+
+# class TblServicePrix(models.Model):
+#     idServicePrix = models.AutoField(primary_key=True)
+#     service = models.ForeignKey(
+#         TblService, on_delete=models.CASCADE, related_name="service_prix"
+#     )
+#     prix = models.ForeignKey(
+#         TblPrix, on_delete=models.CASCADE, related_name="prix_services"
+#     )
+#
+#     class Meta:
+#         pass
+#
+#     def __str__(self):
+#         return f"Prix de {self.prix.prix} € pour le service '{self.service.intitule_service}'"
 
 
 # 📌 Modèle du panier pour chaque utilisateur
@@ -691,10 +676,38 @@ class TblCartItem(models.Model):
 
 class TblPromotion(models.Model):
     idPromotion = models.AutoField(primary_key=True)
-    service = models.ForeignKey('TblService', on_delete=models.CASCADE, related_name="promotions")
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    start_date = models.DateTimeField(default=now)  # Date de début de la promotion
-    end_date = models.DateTimeField()  # Date de fin de la promotion
+
+    # ✅ AJOUT : Référence au salon (cohérence avec TblServicePrix et TblServiceTemps)
+    salon = models.ForeignKey(
+        'TblSalon',
+        on_delete=models.CASCADE,
+        related_name="promotions"
+    )
+
+    # Référence au service
+    service = models.ForeignKey(
+        'TblService',
+        on_delete=models.CASCADE,
+        related_name="promotions"
+    )
+
+    # Pourcentage de réduction
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    # Dates de la promotion
+    start_date = models.DateTimeField(default=now)
+    end_date = models.DateTimeField()
+
+    # ✅ CONTRAINTE D'UNICITÉ : Un salon ne peut avoir qu'une seule promotion active par service
+    class Meta:
+        unique_together = ('salon', 'service', 'start_date')
+        verbose_name = "Promotion"
+        verbose_name_plural = "Promotions"
 
     def is_active(self):
         """
@@ -708,8 +721,78 @@ class TblPromotion(models.Model):
         print(f"DEBUG is_active: today={current_date}, start={start_date}, end={end_date}")
         return start_date <= current_date <= end_date
 
+    def get_prix_avec_promotion(self, prix_original):
+        """
+        Calcule le prix après application de la promotion.
+
+        Args:
+            prix_original (Decimal): Prix original du service
+
+        Returns:
+            Decimal: Prix après réduction
+        """
+        if not self.is_active():
+            return prix_original
+
+        reduction = (self.discount_percentage / Decimal("100")) * prix_original
+        prix_final = prix_original - reduction
+        return prix_final.quantize(Decimal('0.01'))  # Arrondir à 2 décimales
+
+    def get_montant_economise(self, prix_original):
+        """
+        Calcule le montant économisé grâce à la promotion.
+
+        Args:
+            prix_original (Decimal): Prix original du service
+
+        Returns:
+            Decimal: Montant économisé
+        """
+        if not self.is_active():
+            return Decimal("0.00")
+
+        return prix_original - self.get_prix_avec_promotion(prix_original)
+
     def __str__(self):
-        return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
+        salon_nom = self.salon.nom_salon if hasattr(self.salon, 'nom_salon') else f"Salon #{self.salon.idTblSalon}"
+        statut = 'Active' if self.is_active() else 'Expirée'
+        return f"Promotion {self.discount_percentage}% - {self.service.intitule_service} chez {salon_nom} ({statut})"
+
+    def save(self, *args, **kwargs):
+        """
+        Validation personnalisée avant sauvegarde.
+        """
+        # Vérifier que la date de fin est après la date de début
+        if self.end_date <= self.start_date:
+            raise ValueError("La date de fin doit être postérieure à la date de début")
+
+        # Vérifier que le pourcentage est valide
+        if not (0 <= self.discount_percentage <= 100):
+            raise ValueError("Le pourcentage de réduction doit être entre 0 et 100")
+
+        super().save(*args, **kwargs)
+
+# class TblPromotion(models.Model):
+#     idPromotion = models.AutoField(primary_key=True)
+#     service = models.ForeignKey('TblService', on_delete=models.CASCADE, related_name="promotions")
+#     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+#     start_date = models.DateTimeField(default=now)
+#     end_date = models.DateTimeField()
+#
+#     def is_active(self):
+#         """
+#         Vérifie si la promotion est active en fonction de la date actuelle.
+#         Utilise la date uniquement, sans tenir compte des heures.
+#         """
+#         current_date = now().date()
+#         start_date = self.start_date.date()
+#         end_date = self.end_date.date()
+#
+#         print(f"DEBUG is_active: today={current_date}, start={start_date}, end={end_date}")
+#         return start_date <= current_date <= end_date
+#
+#     def __str__(self):
+#         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
 
 
 class TblRendezVous(models.Model):
@@ -770,7 +853,7 @@ class TblRendezVousService(models.Model):
             # 2️⃣ Vérifier si une promotion est active AU MOMENT DE LA RESERVATION
             promo = TblPromotion.objects.filter(
                 service=self.service,
-                start_date__lte=now(),  # La promo est active au moment de la réservation
+                start_date__lte=now(),
                 end_date__gte=now()
             ).first()
 
@@ -955,7 +1038,7 @@ class TblIndisponibilite(models.Model):
     date = models.DateField()
     heure_debut = models.TimeField()
     heure_fin = models.TimeField()
-    motif = models.CharField(max_length=255, blank=True, null=True)
+    motif = models.CharField(max_length=60, blank=False, null=False)
 
     def __str__(self):
         return f"{self.date} de {self.heure_debut} à {self.heure_fin} (motif: {self.motif})"

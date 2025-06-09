@@ -6,7 +6,7 @@ from hairbnb.models import (
     TblPromotion, TblRendezVous, TblPaiement, TblRendezVousService,
     TblIndisponibilite, TblHoraireCoiffeuse, TblSalonImage, TblAvis, TblFavorite, TblTransaction, TblPaiementStatut,
     TblMethodePaiement, TblEmailNotification, TblEmailType, TblEmailStatus, TblUser, TblRole, AIConversation, AIMessage,
-    TblSexe, TblType, TblCoiffeuseSalon
+    TblSexe, TblType, TblCoiffeuseSalon, TblCategorie
 )
 
 admin.site.register(TblLocalite)
@@ -45,4 +45,5 @@ admin.site.register(AIMessage)
 admin.site.register(TblSexe)
 admin.site.register(TblType)
 admin.site.register(TblCoiffeuseSalon)
+admin.site.register(TblCategorie)
 

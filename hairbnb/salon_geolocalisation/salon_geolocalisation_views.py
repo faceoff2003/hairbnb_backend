@@ -19,7 +19,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 
-#@firebase_authenticated
+@firebase_authenticated
 def salons_proches(request):
     """
     Récupère les salons proches d'une position donnée selon une distance max.
@@ -75,7 +75,7 @@ def salons_proches(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 
-#@firebase_authenticated
+@firebase_authenticated
 def get_salon_details(request, salon_id):
     """
     Récupère les détails d'un salon spécifique.
@@ -118,6 +118,33 @@ def get_salon_details(request, salon_id):
             "status": "error",
             "message": "Salon non trouvé"
         }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=500)
+
+
+def get_all_salons(request):
+    """
+    Récupère tous les salons disponibles.
+    """
+    try:
+        # Récupérer tous les salons
+        salons = TblSalon.objects.all()
+        
+        # Sérialiser tous les salons
+        serialized_data = []
+        for salon in salons:
+            salon_data = SalonSerializer(salon).data
+            serialized_data.append(salon_data)
+        
+        return JsonResponse({
+            "status": "success",
+            "count": len(salons),
+            "salons": serialized_data
+        })
+        
     except Exception as e:
         return JsonResponse({
             "status": "error",

@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-
 import stripe
-
-from hairbnb.models import TblClient, TblRendezVous, TblPaiement, TblHoraireCoiffeuse, TblIndisponibilite
+from hairbnb.models import TblRendezVous, TblHoraireCoiffeuse, TblIndisponibilite
+from hairbnb.salon.salon_business_logic import SalonData
+from hairbnb.salon_services.salon_services_business_logic import ServiceData
 from hairbnb_backend import settings_test
 
 # class CoiffeuseData:
@@ -45,31 +45,31 @@ class CoiffeuseData:
         return self.__dict__
 
 
-class SalonData:
-    def __init__(self, salon, filtered_services=None):
-        self.idTblSalon = salon.idTblSalon
-
-        # Gestion de la relation avec la coiffeuse (adaptation au nouveau modèle)
-        # Vérifier si le salon a toujours une coiffeuse propriétaire principale
-        if hasattr(salon, 'coiffeuse') and salon.coiffeuse:
-            self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
-        else:
-            # Sinon, essayer de trouver la coiffeuse propriétaire via TblCoiffeuseSalon
-            from hairbnb.models import TblCoiffeuseSalon
-            proprietaire = TblCoiffeuseSalon.objects.filter(salon=salon, est_proprietaire=True).first()
-            if proprietaire:
-                self.coiffeuse_id = proprietaire.coiffeuse.idTblUser.idTblUser
-            else:
-                # Fallback si aucune coiffeuse propriétaire n'est trouvée
-                self.coiffeuse_id = None
-
-        # ✅ Soit on utilise les services filtrés (pagination), soit tous
-        services_source = filtered_services if filtered_services is not None else salon.salon_service.all().order_by(
-            'service__intitule_service')
-        self.services = [ServiceData(service.service).to_dict() for service in services_source]
-
-    def to_dict(self):
-        return self.__dict__
+# class SalonData:
+#     def __init__(self, salon, filtered_services=None):
+#         self.idTblSalon = salon.idTblSalon
+#
+#         # Gestion de la relation avec la coiffeuse (adaptation au nouveau modèle)
+#         # Vérifier si le salon a toujours une coiffeuse propriétaire principale
+#         if hasattr(salon, 'coiffeuse') and salon.coiffeuse:
+#             self.coiffeuse_id = salon.coiffeuse.idTblUser.idTblUser
+#         else:
+#             # Sinon, essayer de trouver la coiffeuse propriétaire via TblCoiffeuseSalon
+#             from hairbnb.models import TblCoiffeuseSalon
+#             proprietaire = TblCoiffeuseSalon.objects.filter(salon=salon, est_proprietaire=True).first()
+#             if proprietaire:
+#                 self.coiffeuse_id = proprietaire.coiffeuse.idTblUser.idTblUser
+#             else:
+#                 # Fallback si aucune coiffeuse propriétaire n'est trouvée
+#                 self.coiffeuse_id = None
+#
+#         # ✅ Soit on utilise les services filtrés (pagination), soit tous
+#         services_source = filtered_services if filtered_services is not None else salon.salon_service.all().order_by(
+#             'service__intitule_service')
+#         self.services = [ServiceData(service.service).to_dict() for service in services_source]
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 class FullSalonServiceData:
     def __init__(self, salon_service):
@@ -143,79 +143,71 @@ class ClientData:
 
 from django.utils.timezone import now
 
+# # class ServiceData:
 # class ServiceData:
-class ServiceData:
-    def __init__(self, service):
-        self.idTblService = service.idTblService
-        self.intitule_service = service.intitule_service
-        self.description = service.description
-
-        # Récupération du temps
-        service_temps = service.service_temps.first()
-        self.temps_minutes = service_temps.temps.minutes if service_temps else None
-
-        # Récupération du prix
-        service_prix = service.service_prix.first()
-        self.prix = service_prix.prix.prix if service_prix else None
-
-        # Variables pour stocker les promotions
-        self.promotion_active = None
-        self.promotions_a_venir = []
-        self.promotions_expirees = []
-        self.prix_final = self.prix
-
-        # Récupère toutes les promotions pour le service
-        now_date = now()
-
-        # 1. Récupérer la promotion active
-        active_promo = service.promotions.filter(
-            start_date__lte=now_date,
-            end_date__gte=now_date
-        ).first()
-
-        if active_promo:
-            self.promotion_active = self._format_promotion(active_promo)
-            # Calcul du prix final avec la réduction active
-            self.prix_final = self.prix * (1 - (active_promo.discount_percentage / 100))
-
-        # 2. Récupérer les promotions à venir (max toutes)
-        future_promos = service.promotions.filter(
-            start_date__gt=now_date
-        ).order_by('start_date')
-
-        for promo in future_promos:
-            self.promotions_a_venir.append(self._format_promotion(promo))
-
-        # 3. Récupérer les promotions expirées
-        # Calculer combien on peut encore prendre pour atteindre le total de 10
-        remaining_slots = 10 - (1 if active_promo else 0) - len(self.promotions_a_venir)
-
-        if remaining_slots > 0:
-            expired_promos = service.promotions.filter(
-                end_date__lt=now_date
-            ).order_by('-end_date')[:remaining_slots]  # Trier par date de fin décroissante (récentes d'abord)
-
-            for promo in expired_promos:
-                self.promotions_expirees.append(self._format_promotion(promo))
-
-    def _format_promotion(self, promo):
-        """Formate une promotion en dictionnaire"""
-        now_date = now()
-        status = "active" if promo.start_date <= now_date <= promo.end_date else (
-            "future" if promo.start_date > now_date else "expired"
-        )
-
-        return {
-            "idPromotion": promo.idPromotion,
-            "service_id": promo.service.idTblService,
-            "discount_percentage": promo.discount_percentage,
-            "start_date": promo.start_date.isoformat(),
-            "end_date": promo.end_date.isoformat(),
-            "status": status
-        }
-
-    def to_dict(self):
-        return self.__dict__
+#     def __init__(self, service):
+#         self.idTblService = service.idTblService
+#         self.intitule_service = service.intitule_service
+#         self.description = service.description
+#
+#         # ✅ NOUVEAU : Ajout de la catégorie
+#         self.category_id = service.categorie.idTblCategorie if service.categorie else None
+#
+#         # Récupération du temps
+#         service_temps = service.service_temps.first()
+#         self.temps_minutes = service_temps.temps.minutes if service_temps else None
+#         # Récupération du prix
+#         service_prix = service.service_prix.first()
+#         self.prix = service_prix.prix.prix if service_prix else None
+#         # Variables pour stocker les promotions
+#         self.promotion_active = None
+#         self.promotions_a_venir = []
+#         self.promotions_expirees = []
+#         self.prix_final = self.prix
+#         # Récupère toutes les promotions pour le service
+#         now_date = now()
+#         # 1. Récupérer la promotion active
+#         active_promo = service.promotions.filter(
+#             start_date__lte=now_date,
+#             end_date__gte=now_date
+#         ).first()
+#         if active_promo:
+#             self.promotion_active = self._format_promotion(active_promo)
+#             # Calcul du prix final avec la réduction active
+#             self.prix_final = self.prix * (1 - (active_promo.discount_percentage / 100))
+#         # 2. Récupérer les promotions à venir (max toutes)
+#         future_promos = service.promotions.filter(
+#             start_date__gt=now_date
+#         ).order_by('start_date')
+#         for promo in future_promos:
+#             self.promotions_a_venir.append(self._format_promotion(promo))
+#         # 3. Récupérer les promotions expirées
+#         # Calculer combien on peut encore prendre pour atteindre le total de 10
+#         remaining_slots = 10 - (1 if active_promo else 0) - len(self.promotions_a_venir)
+#         if remaining_slots > 0:
+#             expired_promos = service.promotions.filter(
+#                 end_date__lt=now_date
+#             ).order_by('-end_date')[:remaining_slots]  # Trier par date de fin décroissante (récentes d'abord)
+#             for promo in expired_promos:
+#                 self.promotions_expirees.append(self._format_promotion(promo))
+#
+#     def _format_promotion(self, promo):
+#         """Formate une promotion en dictionnaire"""
+#         now_date = now()
+#         status = "active" if promo.start_date <= now_date <= promo.end_date else (
+#             "future" if promo.start_date > now_date else "expired"
+#         )
+#         return {
+#             "idPromotion": promo.idPromotion,
+#             "service_id": promo.service.idTblService,
+#             "discount_percentage": promo.discount_percentage,
+#             "start_date": promo.start_date.isoformat(),
+#             "end_date": promo.end_date.isoformat(),
+#             "status": status
+#         }
+#
+#     def to_dict(self):
+#         return self.__dict__
 
 
 class PromotionData:

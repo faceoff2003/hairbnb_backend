@@ -4,6 +4,7 @@ from django.urls import path, include
 from hairbnb import views
 from hairbnb.views import home, check_user_profile, ServicesListView, add_or_update_service, \
     coiffeuse_services, list_coiffeuses
+from hairbnb.salon_geolocalisation.salon_geolocalisation_views import get_all_salons
 
 urlpatterns = [
     #path('', home, name='home'),  # Route pour la page d'accueil
@@ -17,6 +18,7 @@ urlpatterns = [
     path('api/add_or_update_service/', views.views.add_or_update_service, name='add_or_update_service_without_id'),
     path('api/coiffeuse_services/<int:coiffeuse_id>/', coiffeuse_services, name='coiffeuse_services'),
     path('api/list_coiffeuses/', list_coiffeuses, name='list_coiffeuses'),
+    path('api/salons-list/', get_all_salons, name='salons_list'),  # Endpoint pour lister tous les salons
     #path('api/get_user_profile/<str:userUuid>/', get_user_profile, name='get_user_profile'),
     #path('api/update_user_profile/<str:uuid>/', UpdateUserProfileView.as_view(), name='update_user_profile'),
     path('api/get_id_and_type_from_uuid/<str:uuid>/', views.views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
@@ -36,5 +38,6 @@ urlpatterns = [
     path('api/', include('hairbnb.coiffeuse.coiffeuse_urls')),  # Inclure les routes de coiffeuse_urls.py
     path('api/', include('hairbnb.salon.salon_urls')),  # Inclure les routes de salon_urls.py
     path('api/', include('hairbnb.salon_services.salon_services_urls')),  # Inclure les routes de salon_services_urls.py
+    path('api/', include('hairbnb.salon_services.category_services.category_urls')),  # Inclure les routes de category_urls.py
     path('api/', include('hairbnb.salon_geolocalisation.salon_geolocalisation_urls')),  # Inclure les routes de salon_geolocalisation_urls.py
 ]

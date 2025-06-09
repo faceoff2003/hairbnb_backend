@@ -1,0 +1,142 @@
+from datetime import datetime
+
+from django.utils.timezone import make_aware
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from decorators.decorators import firebase_authenticated
+from hairbnb.models import TblService, TblSalon, TblPromotion
+from hairbnb.promotion.business_logique import PromotionManager
+from hairbnb.salon_services.salon_services_business_logic import ServiceData
+
+
+@api_view(['DELETE'])
+def delete_promotion(request, promotion_id):
+    try:
+        promotion = TblPromotion.objects.get(idPromotion=promotion_id)
+        promotion.delete()
+        return Response({'status': 'success', 'message': 'Promotion supprimée.'}, status=status.HTTP_204_NO_CONTENT)
+    except TblPromotion.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Promotion introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'status': 'error', 'message': f'Erreur: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_promotions_for_service(request, service_id):
+    try:
+        service = TblService.objects.get(idTblService=service_id)
+        promo_mgr = PromotionManager(service)
+
+        # Récupérer pagination depuis la query string
+        try:
+            page = int(request.GET.get("page") or 1)
+        except ValueError:
+            page = 1
+
+        try:
+            page_size = int(request.GET.get("page_size") or 5)
+        except ValueError:
+            page_size = 5
+
+        # S'il demande les expirées
+        expired_data = {}
+        if request.GET.get("expired"):
+            expired_data = promo_mgr.get_expired(page=page, page_size=page_size)
+
+        return Response({
+            "status": "success",
+            "counts": promo_mgr.get_counts(),
+            "active": promo_mgr.get_active(),
+            "upcoming": promo_mgr.get_upcoming(),
+            "expired": expired_data
+        })
+
+    except TblService.DoesNotExist:
+        return Response({"status": "error", "message": "Service introuvable"}, status=404)
+
+#@firebase_authenticated
+@api_view(['POST'])
+def create_promotion(request, salon_id, service_id):
+    try:
+        print("📥 Données reçues :", request.data)  # 🔥 DEBUG
+
+        # Récupérer le salon et le service
+        try:
+            salon = TblSalon.objects.get(idTblSalon=salon_id)
+        except TblSalon.DoesNotExist:
+            return Response({"error": "Salon introuvable."}, status=404)
+
+        try:
+            service = TblService.objects.get(idTblService=service_id)
+        except TblService.DoesNotExist:
+            return Response({"error": "Service introuvable."}, status=404)
+
+        # Récupérer les données de la nouvelle promotion
+        discount_percentage = request.data.get("discount_percentage")
+        start_date_str = request.data.get("start_date")
+        end_date_str = request.data.get("end_date")
+
+        # Vérifier que les champs sont bien remplis
+        if not discount_percentage or not end_date_str:
+            return Response({
+                "error": "Le pourcentage et la date de fin sont obligatoires."
+            }, status=400)
+
+        # Conversion des dates
+        start_date = make_aware(datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d"))
+        end_date = make_aware(datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d"))
+
+        # 🔥 MISE À JOUR : Vérifier s'il existe déjà une promotion qui chevauche cette période
+        # pour ce service ET ce salon spécifiquement
+        existing_promotions = TblPromotion.objects.filter(
+            service=service,
+            salon=salon  # 🔥 NOUVEAU : Filtrer aussi par salon
+        )
+
+        # Une promotion chevauche si:
+        # - Sa date de début est <= à la date de fin de la nouvelle promo ET
+        # - Sa date de fin est >= à la date de début de la nouvelle promo
+        overlapping_promotions = existing_promotions.filter(
+            start_date__lte=end_date,
+            end_date__gte=start_date
+        )
+
+        if overlapping_promotions.exists():
+            return Response({
+                "error": f"Il existe déjà une promotion active pour ce service dans le salon {salon.nom_salon} durant cette période. Veuillez choisir des dates qui ne chevauchent pas d'autres promotions."
+            }, status=400)
+
+        print(
+            f"📝 Promotion reçue: {discount_percentage}% | Début: {start_date} | Fin: {end_date} | Salon: {salon.nom_salon}")  # 🔥 DEBUG
+
+        # 🔥 MISE À JOUR : Créer la promotion avec le salon
+        promotion = TblPromotion.objects.create(
+            salon=salon,  # 🔥 NOUVEAU : Ajouter le salon
+            service=service,
+            discount_percentage=float(discount_percentage),
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        # Récupérer les données du service pour la réponse
+        service_data = ServiceData(service).to_dict()
+
+        return Response({
+            "message": f"Promotion créée avec succès pour le salon {salon.nom_salon}.",
+            "service": service_data,
+            "promotion": {
+                "id": promotion.idPromotion,
+                "salon_id": salon.idTblSalon,
+                "salon_nom": salon.nom_salon,
+                "discount_percentage": promotion.discount_percentage,
+                "start_date": promotion.start_date.isoformat(),
+                "end_date": promotion.end_date.isoformat(),
+                "is_active": promotion.is_active()
+            }
+        }, status=201)
+
+    except Exception as e:
+        print("❌ Erreur interne:", str(e))  # 🔥 DEBUG
+        return Response({"error": str(e)}, status=500)
