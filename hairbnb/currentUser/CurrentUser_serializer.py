@@ -127,10 +127,12 @@ class CoiffeuseSerializer(serializers.ModelSerializer):
 
 class TblCoiffeuseSerializer(serializers.ModelSerializer):
     salons = serializers.SerializerMethodField()
+    salon_principal = serializers.SerializerMethodField()
+    est_proprietaire = serializers.SerializerMethodField()
 
     class Meta:
         model = TblCoiffeuse
-        fields = ['nom_commercial', 'salons']
+        fields = ['nom_commercial', 'salons', 'salon_principal', 'est_proprietaire']  # ✅ AJOUT DES CHAMPS
 
     def get_salons(self, obj):
         # Récupérer tous les salons où la coiffeuse travaille via la table d'association
@@ -147,6 +149,54 @@ class TblCoiffeuseSerializer(serializers.ModelSerializer):
             salon_data.append(salon_info)
 
         return salon_data
+
+    def get_salon_principal(self, obj):
+        """Récupère le salon dont la coiffeuse est propriétaire"""
+        relation = TblCoiffeuseSalon.objects.filter(
+            coiffeuse=obj,
+            est_proprietaire=True
+        ).first()
+
+        if relation:
+            salon = relation.salon
+            return {
+                'idTblSalon': salon.idTblSalon,
+                'nom_salon': salon.nom_salon,
+                'slogan': salon.slogan,
+                'logo_salon': salon.logo_salon.url if salon.logo_salon else None,
+                'numero_tva': salon.numero_tva,
+            }
+        return None
+
+    def get_est_proprietaire(self, obj):
+        """Vérifie si la coiffeuse est propriétaire d'au moins un salon"""
+        return TblCoiffeuseSalon.objects.filter(
+            coiffeuse=obj,
+            est_proprietaire=True
+        ).exists()
+
+# class TblCoiffeuseSerializer(serializers.ModelSerializer):
+#     salons = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = TblCoiffeuse
+#         fields = ['nom_commercial', 'salons']
+#
+#     def get_salons(self, obj):
+#         # Récupérer tous les salons où la coiffeuse travaille via la table d'association
+#         salon_relations = TblCoiffeuseSalon.objects.filter(coiffeuse=obj)
+#         salon_data = []
+#
+#         for relation in salon_relations:
+#             salon = relation.salon
+#             salon_info = {
+#                 'idTblSalon': salon.idTblSalon,
+#                 'nom_salon': salon.nom_salon,
+#                 'est_proprietaire': relation.est_proprietaire
+#             }
+#             salon_data.append(salon_info)
+#
+#         return salon_data
 
 
 # 🔹 Serializer COMPLET pour le Client
@@ -247,15 +297,46 @@ class CurrentUserSerializer(serializers.ModelSerializer):
 
     def get_coiffeuse_data(self, obj):
         """
-        Récupère les données de coiffeuse si l'utilisateur est une coiffeuse,
-        sinon renvoie None.
+        Récupère les données de coiffeuse avec debug pour identifier les problèmes
         """
         try:
+            print(f"🔍 DEBUG get_coiffeuse_data pour user {obj.idTblUser}")
+            print(f"🔍 hasattr(obj, 'coiffeuse'): {hasattr(obj, 'coiffeuse')}")
+
             if hasattr(obj, 'coiffeuse'):
-                return TblCoiffeuseSerializer(obj.coiffeuse, context=self.context).data
+                coiffeuse_obj = obj.coiffeuse
+                print(f"🔍 coiffeuse_obj: {coiffeuse_obj}")
+
+                if coiffeuse_obj:
+                    serializer_data = TblCoiffeuseSerializer(coiffeuse_obj, context=self.context)
+                    result = serializer_data.data
+                    print(f"🔍 Serialization réussie: {result}")
+                    return result
+                else:
+                    print("🔍 ❌ coiffeuse_obj est None")
+                    return None
+            else:
+                print("🔍 ❌ hasattr(obj, 'coiffeuse') est False")
+                return None
+
+        except Exception as e:
+            # ✅ AFFICHER L'ERREUR au lieu de la cacher
+            print(f"🔍 ❌ ERREUR dans get_coiffeuse_data: {str(e)}")
+            import traceback
+            print(f"🔍 ❌ Traceback: {traceback.format_exc()}")
             return None
-        except Exception:
-            return None
+
+    # def get_coiffeuse_data(self, obj):
+    #     """
+    #     Récupère les données de coiffeuse si l'utilisateur est une coiffeuse,
+    #     sinon renvoie None.
+    #     """
+    #     try:
+    #         if hasattr(obj, 'coiffeuse'):
+    #             return TblCoiffeuseSerializer(obj.coiffeuse, context=self.context).data
+    #         return None
+    #     except Exception:
+    #         return None
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

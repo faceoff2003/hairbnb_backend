@@ -5,19 +5,47 @@ from hairbnb.currentUser.CurrentUser_serializer import CurrentUserSerializer
 
 
 @api_view(['GET'])
-#@firebase_authenticated
+# @firebase_authenticated
 def get_current_user(request):
     """
     Récupère les informations de l'utilisateur actuellement authentifié.
     Le décorateur firebase_authenticated garantit que request.user est correctement défini.
     """
     user = request.user
+
+    # ✅ AJOUT DEBUG
+    print(f"🔍 === get_current_user DEBUG ===")
+    print(f"🔍 user: {user}")
+    print(f"🔍 user.idTblUser: {getattr(user, 'idTblUser', 'N/A')}")
+    print(f"🔍 user.type_ref: {getattr(user, 'type_ref', 'N/A')}")
+    print(f"🔍 user.role: {getattr(user, 'role', 'N/A')}")
+
     if not user or not hasattr(user, 'uuid'):
         return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
 
     # Passer le contexte de la requête au serializer pour construire des URLs absolues
     serializer = CurrentUserSerializer(user, context={'request': request})
-    return Response({"status": "success", "user": serializer.data}, status=200)
+
+    # ✅ AJOUT DEBUG RÉSULTAT
+    result = serializer.data
+    print(f"🔍 Résultat serializer: {result}")
+
+    return Response({"status": "success", "user": result}, status=200)
+
+# @api_view(['GET'])
+# #@firebase_authenticated
+# def get_current_user(request):
+#     """
+#     Récupère les informations de l'utilisateur actuellement authentifié.
+#     Le décorateur firebase_authenticated garantit que request.user est correctement défini.
+#     """
+#     user = request.user
+#     if not user or not hasattr(user, 'uuid'):
+#         return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
+#
+#     # Passer le contexte de la requête au serializer pour construire des URLs absolues
+#     serializer = CurrentUserSerializer(user, context={'request': request})
+#     return Response({"status": "success", "user": serializer.data}, status=200)
 
 
 @api_view(['GET'])
@@ -31,9 +59,26 @@ def get_user_by_id(request, id):
     try:
         user = TblUser.objects.get(idTblUser=id)
 
+        # ✅ AJOUT DEBUG
+        print(f"🔍 === get_user_by_id DEBUG ===")
+        print(f"🔍 user trouvé: {user}")
+        print(f"🔍 user.idTblUser: {user.idTblUser}")
+        print(f"🔍 user.type_ref: {user.type_ref}")
+        print(f"🔍 user.role: {user.role}")
+
         # Passer le contexte de la requête au serializer pour construire des URLs absolues
         serializer = CurrentUserSerializer(user, context={'request': request})
         response_data = serializer.data.copy()
+
+        # ✅ AJOUT DEBUG RÉSULTAT
+        print(f"🔍 response_data après serializer: {response_data}")
+
+    # try:
+    #     user = TblUser.objects.get(idTblUser=id)
+    #
+    #     # Passer le contexte de la requête au serializer pour construire des URLs absolues
+    #     serializer = CurrentUserSerializer(user, context={'request': request})
+    #     response_data = serializer.data.copy()
 
         # Enrichir les données pour les coiffeuses
         if user.type_ref and user.type_ref.libelle == 'coiffeuse' and hasattr(user, 'coiffeuse'):
