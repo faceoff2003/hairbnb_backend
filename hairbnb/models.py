@@ -54,21 +54,6 @@ class TblAdresse(models.Model):
         # Affiche le numéro, le nom de la rue, et la commune associée via la localité
         return f"{self.numero}, {self.rue.nom_rue}, {self.rue.localite.commune}"
 
-#Définition du modèle TblNumeroTVA, qui représente un numéro de TVA attribuable à un salon ou une coiffeuse
-# class TblNumeroTVA(models.Model):
-#     # Clé primaire auto-incrémentée pour identifier de manière unique chaque enregistrement de numéro de TVA
-#     idTblNumeroTVA = models.AutoField(primary_key=True)
-#
-#     # Champ pour stocker le numéro de TVA (doit être unique dans la base de données)
-#     numero_tva = models.CharField(
-#         max_length=15,  # Limite la longueur du numéro TVA à 20 caractères
-#         unique=True     # Empêche la duplication d’un même numéro TVA
-#     )
-#
-#     # Représentation en chaîne de caractères de l’objet, utile dans l’interface d’administration et les affichages
-#     def __str__(self):
-#         return self.numero_tva
-
 ################################################################################################################
 ########################################### Modèle représentant un utilisateur #################################
 ################################################################################################################
@@ -207,25 +192,6 @@ class TblCoiffeuse(models.Model):
         return f"Coiffeuse: {self.idTblUser.nom} {self.idTblUser.prenom}"
 ########################################################################################################################
 
-
-
-# # Table pour les coiffeuses
-# class TblCoiffeuse(models.Model):
-#     idTblUser = models.OneToOneField(
-#         'TblUser', on_delete=models.CASCADE, related_name='coiffeuse'
-#     )
-#     denomination_sociale = models.CharField(max_length=255, blank=True, null=True)
-#     tva = models.CharField(max_length=20, blank=True, null=True)
-#     position = models.CharField(max_length=512, blank=True, null=True)
-#
-#     class Meta:
-#         verbose_name = "Coiffeuse"
-#         verbose_name_plural = "Coiffeuses"
-#
-#     def __str__(self):
-#         return f"Coiffeuse: {self.idTblUser.nom} {self.idTblUser.prenom}"
-
-
 # Table pour les clients
 class TblClient(models.Model):
     idTblUser = models.ForeignKey(
@@ -341,15 +307,6 @@ class TblSalon(models.Model):
         help_text="Format: 'latitude,longitude'"
     )
 
-    # # Référence facultative vers un numéro de TVA (lié via clé étrangère)
-    # numero_tva = models.ForeignKey(
-    #     'TblNumeroTVA',
-    #     on_delete=models.SET_NULL,  # Si le numéro est supprimé, on met à null
-    #     null=True,
-    #     blank=True,
-    #     related_name='salons'
-    # )
-
     # Relation ManyToMany avec les coiffeuses travaillant dans ce salon,
     # avec une table intermédiaire personnalisée TblCoiffeuseSalon
     coiffeuses = models.ManyToManyField(
@@ -382,88 +339,6 @@ class TblSalon(models.Model):
 
 
 ########################################################################################################################
-
-
-
-
-# ################################################################################################################
-# #################               Modèle représentant un salon de coiffure               #########################
-# ################################################################################################################
-# class TblSalon(models.Model):
-#     # Identifiant unique du salon (clé primaire auto-incrémentée)
-#     idTblSalon = models.AutoField(primary_key=True)
-#
-#     # Relation OneToOne avec une coiffeuse principale (gérante ou propriétaire)
-#     # related_name='salon_direct' permet d’accéder au salon directement via coiffeuse.salon_direct
-#     coiffeuse = models.OneToOneField(
-#         'TblCoiffeuse',
-#         on_delete=models.CASCADE,
-#         related_name='salon_direct'
-#     )
-#
-#     # Nom du salon
-#     nom_salon = models.CharField(max_length=30)
-#
-#     # Slogan publicitaire du salon (champ facultatif)
-#     slogan = models.CharField(max_length=40, blank=True, null=True)
-#
-#     # Description du salon (champ facultatif, texte plus long)
-#     a_propos = models.TextField(max_length=700, blank=True, null=True)
-#
-#     # Logo du salon, avec un emplacement de stockage personnalisé et une image par défaut
-#     logo_salon = models.ImageField(
-#         upload_to='photos/logos/',                         # Dossier de destination dans MEDIA_ROOT
-#         null=True,
-#         blank=True,
-#         default='photos/defaults/logo_default.png'         # Image par défaut si aucun logo n’est fourni
-#     )
-#
-#     # Relation ManyToMany avec les services proposés dans le salon, via une table intermédiaire
-#     services = models.ManyToManyField(
-#         'TblService',
-#         related_name='salons',
-#         through='TblSalonService'  # Table personnalisée de liaison
-#     )
-#
-#     # Adresse du salon (relation optionnelle)
-#     adresse = models.ForeignKey(
-#         'TblAdresse',
-#         on_delete=models.SET_NULL,  # Si l'adresse est supprimée, on met à null
-#         null=True,
-#         related_name='salons'
-#     )
-#
-#     # Champ pour stocker la géolocalisation du salon (latitude,longitude)
-#     position = models.CharField(
-#         max_length=50,
-#         default="0,0",  # Valeur par défaut
-#         help_text="Format: 'latitude,longitude'"
-#     )
-#
-#     # Référence facultative vers un numéro de TVA (lié via clé étrangère)
-#     numero_tva = models.ForeignKey(
-#         'TblNumeroTVA',
-#         on_delete=models.SET_NULL,  # Si le numéro est supprimé, on met à null
-#         null=True,
-#         blank=True,
-#         related_name='salons'
-#     )
-#
-#     # Relation ManyToMany avec les coiffeuses travaillant dans ce salon,
-#     # avec une table intermédiaire personnalisée TblCoiffeuseSalon
-#     coiffeuses = models.ManyToManyField(
-#         'TblCoiffeuse',
-#         through='TblCoiffeuseSalon',
-#         related_name='salons'
-#     )
-#
-#     # Représentation textuelle de l’objet, utilisée notamment dans l’interface d’administration
-#     def __str__(self):
-#         # Affiche le nom du propriétaire si défini, sinon le nom du salon
-#         if hasattr(self, 'coiffeuse') and self.coiffeuse:
-#             return f"Salon de {self.coiffeuse.idTblUser.nom} {self.coiffeuse.idTblUser.prenom}"
-#         return f"Salon: {self.nom_salon}"
-# ########################################################################################################################
 
 ################################################################################################################
 ########################### Modèle représentant la relation entre coiffeuse et salon ###########################
@@ -525,16 +400,114 @@ class TblSalonImage(models.Model):
 
 # ------------------------------------TblAvis---------------------------------------
 
-class TblAvis(models.Model):
-    salon = models.ForeignKey(TblSalon, on_delete=models.CASCADE, related_name='avis')
-    client = models.ForeignKey('TblClient', on_delete=models.SET_NULL, null=True)
-    note = models.IntegerField(choices=[(i, f"{i}/5") for i in range(1, 6)])
-    commentaire = models.TextField()  # 🔥 Obligatoire : pas de blank=True
+# class TblAvis(models.Model):
+#     salon = models.ForeignKey(TblSalon, on_delete=models.CASCADE, related_name='avis')
+#     client = models.ForeignKey('TblClient', on_delete=models.SET_NULL, null=True)
+#     note = models.IntegerField(choices=[(i, f"{i}/5") for i in range(1, 6)])
+#     commentaire = models.TextField()  # 🔥 Obligatoire : pas de blank=True
+#
+#     date = models.DateTimeField(auto_now_add=True)
+#
+#     def __str__(self):
+#         return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon}"
 
-    date = models.DateTimeField(auto_now_add=True)
+
+# 1️⃣ TABLE DES STATUTS D'AVIS
+class TblAvisStatut(models.Model):
+    """Table des statuts d'avis possibles"""
+    idTblAvisStatut = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=20, unique=True)  # Code technique
+    libelle = models.CharField(max_length=50)  # Libellé lisible
+    description = models.TextField(blank=True, null=True)  # Description optionnelle
+
+    class Meta:
+        db_table = 'tbl_avis_statut'
+        verbose_name = "Statut d'avis"
+        verbose_name_plural = "Statuts d'avis"
+        ordering = ['libelle']
 
     def __str__(self):
-        return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon}"
+        return self.libelle
+
+
+# 2️⃣ TABLE TBLAVIS MISE À JOUR
+class TblAvis(models.Model):
+    """Modèle pour les avis clients - Version finale"""
+
+    # 🔗 Relations existantes (gardées)
+    salon = models.ForeignKey(TblSalon, on_delete=models.CASCADE, related_name='avis')
+    client = models.ForeignKey('TblClient', on_delete=models.SET_NULL, null=True)
+
+    # 🆕 NOUVEAU : Lien vers le rendez-vous (UNIQUE = 1 avis par RDV max)
+    rendez_vous = models.ForeignKey(
+        'TblRendezVous',
+        on_delete=models.CASCADE,
+        related_name='avis',
+        unique=True,  # ← Garantit 1 seul avis par RDV
+        null=True,  # Pour la migration des avis existants
+        blank=True  # Pour la migration des avis existants
+    )
+
+    # 🆕 NOUVEAU : Statut de l'avis
+    statut = models.ForeignKey(
+        TblAvisStatut,
+        on_delete=models.PROTECT,  # Protection contre suppression accidentelle
+        related_name='avis',
+        default=1  # Par défaut : "visible" (à créer en premier)
+    )
+
+    # 📊 Données d'avis (existantes, gardées)
+    note = models.IntegerField(choices=[(i, f"{i}/5") for i in range(1, 6)])
+    commentaire = models.TextField()  # 🔥 Obligatoire : pas de blank=True
+    date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'TblAvis'  # Garder le même nom de table
+        verbose_name = 'Avis'
+        verbose_name_plural = 'Avis'
+        ordering = ['-date']
+
+        # Index pour performance
+        indexes = [
+            models.Index(fields=['salon', 'statut']),
+            models.Index(fields=['client']),
+            models.Index(fields=['rendez_vous']),
+            models.Index(fields=['statut']),
+            models.Index(fields=['date']),
+        ]
+
+        # Contraintes
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(note__gte=1) & models.Q(note__lte=5),
+                name='tblavis_note_valide_final'
+            ),
+        ]
+
+    def __str__(self):
+        if self.rendez_vous:
+            return f"Avis {self.note}/5 - RDV {self.rendez_vous.idRendezVous} ({self.statut.libelle})"
+        else:
+            # Compatibilité avec vos avis existants
+            return f"Avis {self.note}/5 de {self.client.idTblUser.prenom if self.client else 'Anonyme'} - {self.salon} ({self.statut.libelle})"
+
+    # 🆕 PROPRIÉTÉS UTILES
+    @property
+    def client_nom_complet(self):
+        """Nom complet du client"""
+        if self.client:
+            return f"{self.client.idTblUser.prenom} {self.client.idTblUser.nom}"
+        return "Anonyme"
+
+    @property
+    def est_visible(self):
+        """Vérifie si l'avis est visible publiquement"""
+        return self.statut.code == 'visible'
+
+    @property
+    def est_masque(self):
+        """Vérifie si l'avis est masqué"""
+        return self.statut.code == 'masque'
 
 
 # Table de jonction pour relier les salons et les services
@@ -599,40 +572,6 @@ class TblServicePrix(models.Model):
         salon_info = f" chez {self.salon.nom_salon}" if self.salon else " (salon non défini)"
         return f"Prix de {self.prix.prix}€ pour '{self.service.intitule_service}'{salon_info}"
 
-
-
-
-
-# class TblServiceTemps(models.Model):
-#     idServiceTemps = models.AutoField(primary_key=True)
-#     service = models.ForeignKey(
-#         TblService, on_delete=models.CASCADE, related_name="service_temps"
-#     )
-#     temps = models.ForeignKey(
-#         TblTemps, on_delete=models.CASCADE, related_name="temps_services"
-#     )
-#
-#     class Meta:
-#         unique_together = ('service', 'temps')
-#
-#     def __str__(self):
-#         return f"Temps de {self.temps.minutes} minutes pour le service '{self.service.intitule_service}'"
-
-
-# class TblServicePrix(models.Model):
-#     idServicePrix = models.AutoField(primary_key=True)
-#     service = models.ForeignKey(
-#         TblService, on_delete=models.CASCADE, related_name="service_prix"
-#     )
-#     prix = models.ForeignKey(
-#         TblPrix, on_delete=models.CASCADE, related_name="prix_services"
-#     )
-#
-#     class Meta:
-#         pass
-#
-#     def __str__(self):
-#         return f"Prix de {self.prix.prix} € pour le service '{self.service.intitule_service}'"
 
 
 # 📌 Modèle du panier pour chaque utilisateur
@@ -771,28 +710,6 @@ class TblPromotion(models.Model):
             raise ValueError("Le pourcentage de réduction doit être entre 0 et 100")
 
         super().save(*args, **kwargs)
-
-# class TblPromotion(models.Model):
-#     idPromotion = models.AutoField(primary_key=True)
-#     service = models.ForeignKey('TblService', on_delete=models.CASCADE, related_name="promotions")
-#     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-#     start_date = models.DateTimeField(default=now)
-#     end_date = models.DateTimeField()
-#
-#     def is_active(self):
-#         """
-#         Vérifie si la promotion est active en fonction de la date actuelle.
-#         Utilise la date uniquement, sans tenir compte des heures.
-#         """
-#         current_date = now().date()
-#         start_date = self.start_date.date()
-#         end_date = self.end_date.date()
-#
-#         print(f"DEBUG is_active: today={current_date}, start={start_date}, end={end_date}")
-#         return start_date <= current_date <= end_date
-#
-#     def __str__(self):
-#         return f"Promotion de {self.discount_percentage}% pour {self.service.intitule_service} ({'Active' if self.is_active() else 'Expirée'})"
 
 
 class TblRendezVous(models.Model):

@@ -7,22 +7,16 @@ from hairbnb.views import home, check_user_profile, ServicesListView, add_or_upd
 from hairbnb.salon_geolocalisation.salon_geolocalisation_views import get_all_salons
 
 urlpatterns = [
-    #path('', home, name='home'),  # Route pour la page d'accueil
     path('ghost/', admin.site.urls),
-    # path('api/create-profile/', create_user_profile, name='create_user_profile'),
     path('api/check-user-profile/', views.views.check_user_profile, name='check_user_profile'),
     path('api/create_salon/', views.views.create_salon, name='create_salon'),
     path('api/services/', ServicesListView, name='services-list'),
-    #path('api/add_or_update_service/', add_or_update_service, name='add_or_update_service'),
     path('api/add_or_update_service/<int:service_id>/', views.add_or_update_service, name='add_or_update_service'),
     path('api/add_or_update_service/', views.views.add_or_update_service, name='add_or_update_service_without_id'),
     path('api/coiffeuse_services/<int:coiffeuse_id>/', coiffeuse_services, name='coiffeuse_services'),
     path('api/list_coiffeuses/', list_coiffeuses, name='list_coiffeuses'),
     path('api/salons-list/', get_all_salons, name='salons_list'),  # Endpoint pour lister tous les salons
-    #path('api/get_user_profile/<str:userUuid>/', get_user_profile, name='get_user_profile'),
-    #path('api/update_user_profile/<str:uuid>/', UpdateUserProfileView.as_view(), name='update_user_profile'),
     path('api/get_id_and_type_from_uuid/<str:uuid>/', views.views.get_id_and_type_from_uuid, name='get_id_and_type_from_uuid'),
-    # path('api/add_service_to_salon/', add_service_to_salon, name='add_service_to_salon'),
     path('api/', include('hairbnb.urls.serializers_urls')),  # Inclure les routes de serializers_urls.py
     path('api/', include('hairbnb.promotion.promotion_urls')),  # Inclure les routes de promotion_urls.py
     path('api/', include('hairbnb.publicSalonDetail.urls')),  # Inclure les routes de publicSalonDetail_urls.py
@@ -42,4 +36,6 @@ urlpatterns = [
     path('api/', include('hairbnb.salon_geolocalisation.salon_geolocalisation_urls')),  # Inclure les routes de salon_geolocalisation_urls.py
     path('api/', include('hairbnb.dispinibilites.disponibilite_urls')),  # Inclure les routes de disponibilites_urls.py
     path('api/coiffeuse/ai/', include('hairbnb.ai_service.coiffeuse_ai.coiffeuse_ai_urls')),  # Inclure les routes de coiffeuse_ai_urls.py
+    path('api/', include('hairbnb.avis.avis_urls')),# Inclure les routes de avis_urls.py
+
 ]
