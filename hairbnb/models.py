@@ -67,11 +67,12 @@ class TblUser(models.Model):
     # Nom de famille de l'utilisateur
     nom = models.CharField(max_length=20)
 
-    # Prénom de l'utilisateur
+    # # Prénom de l'utilisateur
     prenom = models.CharField(max_length=20)
 
     # Adresse e-mail de l'utilisateur (doit être unique)
-    email = models.EmailField(unique=True)
+    #email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=150, unique=True)
 
     # Numéro de téléphone de l'utilisateur (format libre, max 15 chiffres)
     numero_telephone = models.CharField(max_length=20)

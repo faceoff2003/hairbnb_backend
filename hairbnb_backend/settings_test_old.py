@@ -12,9 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
-import firebase_admin
 from dotenv import load_dotenv
-from firebase_admin import credentials
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,27 +23,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-5z0had1txu1r8p2fdqjh5#c12zmws%32!1o-ttuxd0)+)82c-s'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# ✅ CORRECTION 1: Activer DEBUG temporairement pour voir les erreurs
+DEBUG = True  # ✅ Temporaire - à remettre à False après diagnostic
 
-
-#ALLOWED_HOSTS = ['192.168.0.202', '127.0.0.1', 'localhost']
-# ALLOWED_HOSTS = [
-#     '127.0.0.1',
-#     'localhost',
-#     '192.168.0.248',  # Ton IP locale
-#     '192.168.0.248',
-#     '91.86.52.162',    # Ton IP publique
-#     'hairbnb.site',
-#     'www.hairbnb.site',
-#     'api.hairbnb.site',
-#     "https://hairbnb.site",
-#     "https://www.hairbnb.site",
-#
-# ]
-
-ALLOWED_HOSTS = ['hairbnb.site', 'www.hairbnb.site']
+# ✅ CORRECTION 2: ALLOWED_HOSTS complet avec IP publique
+ALLOWED_HOSTS = [
+    'hairbnb.site', 
+    'www.hairbnb.site',
+    '91.86.52.162',    # ✅ TON IP PUBLIQUE (CRUCIAL!)
+    '127.0.0.1',       # ✅ Pour le développement local
+    'localhost',       # ✅ Pour le développement local
+    '0.0.0.0'          # ✅ Pour ton runserver 0.0.0.0:8080
+]
 
 #STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
@@ -157,12 +146,23 @@ FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase_auth_services/fireb
 
 ROOT_URLCONF = 'hairbnb_backend.urls'
 
-# Initialiser Firebase Admin
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://hairbnb-7eeb9-default-rtdb.europe-west1.firebasedatabase.app'
-    })
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         #'DIRS': [BASE_DIR / 'templates']
+#         'DIRS': [os.path.join(BASE_DIR, 'templates')]
+#         ,
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
 
 WSGI_APPLICATION = 'hairbnb_backend.wsgi.application'
 
@@ -238,32 +238,40 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+# ✅ CORRECTION 3: CORS avec HTTPS ajouté
 CORS_ALLOWED_ORIGINS = [
-    # "http://localhost:3000",
     "http://localhost:57365",
     "http://127.0.0.1:8080",
     "http://hairbnb.site",
     "http://www.hairbnb.site",
-    "http://www.hairbnb.site:49332",
+    "https://hairbnb.site",        # ✅ HTTPS ajouté
+    "https://www.hairbnb.site",    # ✅ HTTPS ajouté
     "http://api.hairbnb.site",
     "http://91.86.53.160:8080",
     "http://91.86.53.160",
     "http://192.168.106.93",
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://www.hairbnb.site","https://hairbnb.site","http://localhost:57365",]
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# ✅ CORRECTION 4: CSRF avec plus d'origins
+CSRF_TRUSTED_ORIGINS = [
+    "https://www.hairbnb.site",
+    "https://hairbnb.site",
+    "http://localhost:57365",
+    "http://127.0.0.1:8080",     # ✅ Ajouté pour local
+    "http://hairbnb.site",       # ✅ Ajouté HTTP
+    "http://www.hairbnb.site"    # ✅ Ajouté HTTP
+]
+
+# ✅ CORRECTION 5: SSL moins strict temporairement pour diagnostiquer
+# SECURE_SSL_REDIRECT = True      # ✅ Désactivé temporairement
+# SESSION_COOKIE_SECURE = True    # ✅ Désactivé temporairement  
+# CSRF_COOKIE_SECURE = True       # ✅ Désactivé temporairement
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
 
 
 CORS_ALLOW_METHODS = [

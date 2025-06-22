@@ -8,7 +8,7 @@ from decorators.decorators import firebase_authenticated
 from hairbnb.models import TblCoiffeuse,TblCoiffeuseSalon
 import logging
 from hairbnb.salon.salon_serializers import TblSalonSerializer, SalonCreateSerializer
-from hairbnb_backend import settings_test
+from hairbnb_backend import settings_test_old
 
 # Configurer le logger
 logger = logging.getLogger(__name__)

@@ -14,7 +14,7 @@ from decorators.decorators import firebase_authenticated
 from hairbnb.models import TblRendezVous, TblPaiement, TblPaiementStatut, TblMethodePaiement, TblRendezVousService, \
     TblTransaction
 from hairbnb.payment.paiement_serializer import PaiementDetailSerializer, RefundSerializer
-from hairbnb_backend import settings_test
+from hairbnb_backend import settings_test_old, settings_test
 
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
 endpoint_secret = settings_test.STRIPE_WEBHOOK_SECRET

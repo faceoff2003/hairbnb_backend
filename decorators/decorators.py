@@ -1,9 +1,10 @@
 from functools import wraps
 
 from rest_framework import status
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
-from hairbnb.models import TblCoiffeuse, TblCoiffeuseSalon
+from hairbnb.models import TblCoiffeuse, TblCoiffeuseSalon, TblUser
 
 """
 ********************************************************************************
@@ -94,3 +95,41 @@ def is_owner_coiffeuse(view_func):
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
+
+
+def is_admin(view_func):
+    """
+    Décorateur pour vérifier que l'utilisateur connecté est administrateur
+    """
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        try:
+            # Récupérer l'utilisateur depuis request.user (Firebase auth)
+            if not hasattr(request, 'user') or not request.user:
+                return Response({
+                    "success": False,
+                    "message": "Utilisateur non authentifié"
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Récupérer l'utilisateur dans la base
+            user = get_object_or_404(TblUser, uuid=request.user.uuid)
+
+            # Vérifier si c'est un admin
+            if user.get_role() != 'admin':
+                return Response({
+                    "success": False,
+                    "message": "Accès refusé. Droits administrateur requis."
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Ajouter l'utilisateur admin au request pour éviter une nouvelle requête
+            request.admin_user = user
+            return view_func(request, *args, **kwargs)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Erreur de vérification admin: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return wrapper

@@ -49,32 +49,6 @@ def add_indisponibilite(request):
         return Response({"error": str(e)}, status=500)
 
 
-# @api_view(['POST'])
-# def add_indisponibilite(request):
-#     try:
-#         print("📥 Données reçues :", request.data)  # ✅ LOG ICI
-#
-#         data = request.data
-#         indispo = TblIndisponibilite.objects.create(
-#             coiffeuse_id=data["coiffeuse"],
-#             date=data["date"],
-#             heure_debut=data["heure_debut"],
-#             heure_fin=data["heure_fin"],
-#             motif=data.get("motif", "")
-#         )
-#         return Response({
-#             "message": "Indisponibilité enregistrée ✅",
-#             "indisponibilite": IndisponibiliteData(indispo).to_dict()
-#         })
-#
-#     except Exception as e:
-#         import traceback
-#         print("⛔ ERREUR:", e)
-#         traceback.print_exc()  # ✅ Log complet de l’erreur
-#         return Response({"error": str(e)}, status=500)
-
-
-
 
 @api_view(['PUT'])
 def update_indisponibilite(request, indispo_id):

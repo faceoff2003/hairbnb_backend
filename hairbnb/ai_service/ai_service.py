@@ -155,13 +155,28 @@ class AIService:
             input_tokens = self.count_tokens(system_prompt + user_content)
 
             # Appeler l'API Claude avec des paramètres optimisés
+            tools = [
+                {
+                    "name": "query_database",
+                    "description": "Exécute une requête SELECT sur la base de données Hairbnb",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "sql": {"type": "string", "description": "Requête SQL SELECT à exécuter"}
+                        },
+                        "required": ["sql"]
+                    }
+                }
+            ]
+
+            # Définir les outils disponibles pour Claude
             response = self.client.messages.create(
-                model="claude-3-haiku-20240307",  # Plus économique que Opus
-                max_tokens=300,  # Réduit à 300 pour forcer la concision
+                model="claude-3-haiku-20240307",
+                max_tokens=300,
                 system=system_prompt,
                 messages=messages,
-                temperature=0.3  # Température plus basse pour des réponses précises et concises
-
+                tools=tools,
+                temperature=0.3
             )
 
             # Extraire la réponse

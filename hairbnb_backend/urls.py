@@ -37,5 +37,7 @@ urlpatterns = [
     path('api/', include('hairbnb.dispinibilites.disponibilite_urls')),  # Inclure les routes de disponibilites_urls.py
     path('api/coiffeuse/ai/', include('hairbnb.ai_service.coiffeuse_ai.coiffeuse_ai_urls')),  # Inclure les routes de coiffeuse_ai_urls.py
     path('api/', include('hairbnb.avis.avis_urls')),# Inclure les routes de avis_urls.py
+    path('api/', include('hairbnb.chat.chat_urls')),  # Inclure les routes de chat_urls.py
+    path('api/administration/', include('hairbnb.administration.admin_urls')),  # Inclure les routes de admin_urls.py
 
 ]

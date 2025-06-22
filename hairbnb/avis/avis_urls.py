@@ -3,7 +3,7 @@
 from django.urls import path
 
 from hairbnb.avis.avis_views import avis_salon_public, supprimer_avis, modifier_avis, mes_avis, creer_avis, \
-    mes_rdv_avis_en_attente
+    mes_rdv_avis_en_attente, admin_lister_avis, admin_supprimer_avis, admin_masquer_avis, avis_clients_coiffeuse
 
 urlpatterns = [
     # 🔐 APIs PROTÉGÉES (avec authentification Firebase)
@@ -27,6 +27,19 @@ urlpatterns = [
 
     # Voir les avis publics d'un salon
     path('salon/<int:salon_id>/avis/', avis_salon_public, name='avis_salon_public'),
+
+    # Lister tous les avis avec filtres et pagination
+    path('admin/avis/', admin_lister_avis, name='admin_lister_avis'),
+
+    # Supprimer définitivement un avis
+    path('admin/avis/<int:avis_id>/supprimer/', admin_supprimer_avis, name='admin_supprimer_avis'),
+
+    # Masquer/Démasquer un avis
+    path('admin/avis/<int:avis_id>/moderer/', admin_masquer_avis, name='admin_masquer_avis'),
+
+    # Dans la section 🔐 APIs PROTÉGÉES, ajoutez :
+    # path('coiffeuse/avis-clients/', avis_clients_coiffeuse, name='avis_clients_coiffeuse'),
+    path('avis-clients-coiffeuse/', avis_clients_coiffeuse, name='avis_clients_coiffeuse'),
 ]
 
 # 📋 RÉSUMÉ DES ENDPOINTS DISPONIBLES :

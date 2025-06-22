@@ -5,7 +5,6 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from ..currentUser.CurrentUser_serializer import CurrentUserSerializer
 from ..models import TblCoiffeuse, TblClient, TblUser, TblSalon
 from ..profil.profil_serializers import CoiffeuseSerializer, ClientSerializer
 

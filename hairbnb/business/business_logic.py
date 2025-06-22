@@ -3,7 +3,8 @@ import stripe
 from hairbnb.models import TblRendezVous, TblHoraireCoiffeuse, TblIndisponibilite
 from hairbnb.salon.salon_business_logic import SalonData
 from hairbnb.salon_services.salon_services_business_logic import ServiceData
-from hairbnb_backend import settings_test
+from hairbnb_backend import settings_test_old, settings_test
+
 
 # class CoiffeuseData:
 class CoiffeuseData:

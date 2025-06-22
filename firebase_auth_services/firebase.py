@@ -9,7 +9,9 @@ FIREBASE_CREDENTIAL_PATH = os.path.join(os.path.dirname(__file__), 'firebase_cre
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://hairbnb-7eeb9-default-rtdb.europe-west1.firebasedatabase.app/'
+    })
 
 
 # firebase.py (suite)

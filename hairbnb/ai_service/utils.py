@@ -1,4 +1,5 @@
 # hairbnb/ai_service/utils.py
+from django.db import connection
 from django.db.models import Count, Sum, Avg
 from datetime import datetime, timedelta
 import logging
@@ -483,3 +484,37 @@ def get_database_context_for_query(query, user=None):
         context['error'] = f"Erreur lors de l'extraction des données: {str(e)}"
 
     return context
+
+
+def execute_read_only_query(sql_query):
+    """
+    Exécute une requête SQL en LECTURE SEULE et retourne les résultats
+    """
+    try:
+        # Vérifier que c'est bien une requête SELECT
+        if not sql_query.strip().upper().startswith('SELECT'):
+            return {
+                "success": False,
+                "error": "Seules les requêtes SELECT sont autorisées"
+            }
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql_query)
+            columns = [desc[0] for desc in cursor.description]
+            results = cursor.fetchall()
+
+            # Convertir en liste de dictionnaires
+            data = []
+            for row in results:
+                data.append(dict(zip(columns, row)))
+
+            return {
+                "success": True,
+                "data": data,
+                "count": len(data)
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }

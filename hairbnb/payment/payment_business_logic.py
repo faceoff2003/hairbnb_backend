@@ -2,7 +2,7 @@
 
 import stripe
 from hairbnb.models import TblRendezVous, TblRendezVousService
-from hairbnb_backend import settings_test
+from hairbnb_backend import settings_test_old
 
 stripe.api_key = settings_test.STRIPE_SECRET_KEY
 

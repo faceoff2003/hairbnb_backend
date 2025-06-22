@@ -4,7 +4,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from hairbnb.models import (
     TblAvis, TblAvisStatut, TblRendezVous, TblClient,
-    TblSalon
+    TblSalon, TblUser
 )
 
 
@@ -249,3 +249,85 @@ class MesAvisSerializer(serializers.ModelSerializer):
 
     def get_date_formatted(self, obj):
         return obj.date.strftime('%d/%m/%Y à %H:%M')
+
+class AdminClientSerializer(serializers.ModelSerializer):
+    """Serializer pour les informations client dans l'admin"""
+    nom = serializers.CharField(source='idTblUser.nom', read_only=True)
+    prenom = serializers.CharField(source='idTblUser.prenom', read_only=True)
+    email = serializers.CharField(source='idTblUser.email', read_only=True)
+    photo_profil = serializers.CharField(source='idTblUser.photo_profil', read_only=True)
+    uuid = serializers.CharField(source='idTblUser.uuid', read_only=True)
+    idTblUser = serializers.IntegerField(source='idTblUser.idTblUser', read_only=True)
+
+
+    class Meta:
+        model = TblUser
+        fields = ['nom', 'prenom', 'email', 'photo_profil', 'uuid', 'idTblUser']
+
+class AdminSalonSerializer(serializers.ModelSerializer):
+    """Serializer pour les informations salon dans l'admin"""
+    class Meta:
+        model = TblSalon
+        fields = ['idTblSalon', 'nom_salon', 'logo_salon']
+
+class AdminAvisSerializer(serializers.ModelSerializer):
+    """Serializer pour la gestion admin des avis"""
+    client = AdminClientSerializer(read_only=True)
+    salon = AdminSalonSerializer(read_only=True)
+    statut_libelle = serializers.CharField(source='statut.libelle', read_only=True)
+    statut_code = serializers.CharField(source='statut.code', read_only=True)
+    date_formatted = serializers.SerializerMethodField()
+    rdv_id = serializers.IntegerField(source='rendez_vous.idRendezVous', read_only=True)
+
+    class Meta:
+        model = TblAvis
+        fields = [
+            'id', 'note', 'commentaire', 'date', 'date_formatted',
+            'client', 'salon', 'statut_libelle', 'statut_code', 'rdv_id'
+        ]
+
+    def get_date_formatted(self, obj):
+        return obj.date.strftime('%d/%m/%Y à %H:%M')
+
+
+class CoiffeuseAvisClientSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les avis vus par la coiffeuse
+    Inclut toutes les infos client + RDV
+    """
+    # Informations client complètes
+    client_nom = serializers.CharField(source='client.idTblUser.nom', read_only=True)
+    client_prenom = serializers.CharField(source='client.idTblUser.prenom', read_only=True)
+    client_email = serializers.CharField(source='client.idTblUser.email', read_only=True)
+    client_photo = serializers.CharField(source='client.idTblUser.photo_profil', read_only=True)
+    client_uuid = serializers.CharField(source='client.idTblUser.uuid', read_only=True)
+    client_id = serializers.IntegerField(source='client.idTblUser.idTblUser', read_only=True)
+
+    # Informations RDV
+    rdv_id = serializers.IntegerField(source='rendez_vous.idRendezVous', read_only=True)
+    rdv_date = serializers.DateTimeField(source='rendez_vous.date_heure', read_only=True)
+    rdv_date_formatted = serializers.SerializerMethodField()
+
+    # Date avis formatée
+    date_formatted = serializers.SerializerMethodField()
+
+    # Statut
+    statut_libelle = serializers.CharField(source='statut.libelle', read_only=True)
+
+    class Meta:
+        model = TblAvis
+        fields = [
+            'id', 'note', 'commentaire', 'date', 'date_formatted',
+            'client_nom', 'client_prenom', 'client_email', 'client_photo',
+            'client_uuid', 'client_id',
+            'rdv_id', 'rdv_date', 'rdv_date_formatted',
+            'statut_libelle'
+        ]
+
+    def get_date_formatted(self, obj):
+        return obj.date.strftime('%d/%m/%Y à %H:%M')
+
+    def get_rdv_date_formatted(self, obj):
+        if obj.rendez_vous:
+            return obj.rendez_vous.date_heure.strftime('%d/%m/%Y à %H:%M')
+        return None

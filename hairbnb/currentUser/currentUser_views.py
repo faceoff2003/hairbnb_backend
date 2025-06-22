@@ -5,7 +5,7 @@ from hairbnb.currentUser.CurrentUser_serializer import CurrentUserSerializer
 
 
 @api_view(['GET'])
-# @firebase_authenticated
+@firebase_authenticated
 def get_current_user(request):
     """
     Récupère les informations de l'utilisateur actuellement authentifié.
@@ -32,24 +32,9 @@ def get_current_user(request):
 
     return Response({"status": "success", "user": result}, status=200)
 
-# @api_view(['GET'])
-# #@firebase_authenticated
-# def get_current_user(request):
-#     """
-#     Récupère les informations de l'utilisateur actuellement authentifié.
-#     Le décorateur firebase_authenticated garantit que request.user est correctement défini.
-#     """
-#     user = request.user
-#     if not user or not hasattr(user, 'uuid'):
-#         return Response({"status": "error", "message": "Utilisateur non trouvé"}, status=404)
-#
-#     # Passer le contexte de la requête au serializer pour construire des URLs absolues
-#     serializer = CurrentUserSerializer(user, context={'request': request})
-#     return Response({"status": "success", "user": serializer.data}, status=200)
-
 
 @api_view(['GET'])
-#@firebase_authenticated
+@firebase_authenticated
 def get_user_by_id(request, id):
     """
     Récupère les informations d'un utilisateur spécifique par son ID.
