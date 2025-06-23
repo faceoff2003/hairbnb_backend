@@ -175,29 +175,6 @@ class TblCoiffeuseSerializer(serializers.ModelSerializer):
             est_proprietaire=True
         ).exists()
 
-# class TblCoiffeuseSerializer(serializers.ModelSerializer):
-#     salons = serializers.SerializerMethodField()
-#
-#     class Meta:
-#         model = TblCoiffeuse
-#         fields = ['nom_commercial', 'salons']
-#
-#     def get_salons(self, obj):
-#         # Récupérer tous les salons où la coiffeuse travaille via la table d'association
-#         salon_relations = TblCoiffeuseSalon.objects.filter(coiffeuse=obj)
-#         salon_data = []
-#
-#         for relation in salon_relations:
-#             salon = relation.salon
-#             salon_info = {
-#                 'idTblSalon': salon.idTblSalon,
-#                 'nom_salon': salon.nom_salon,
-#                 'est_proprietaire': relation.est_proprietaire
-#             }
-#             salon_data.append(salon_info)
-#
-#         return salon_data
-
 
 # 🔹 Serializer COMPLET pour le Client
 class ClientSerializer(serializers.ModelSerializer):
@@ -300,30 +277,30 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         Récupère les données de coiffeuse avec debug pour identifier les problèmes
         """
         try:
-            print(f"🔍 DEBUG get_coiffeuse_data pour user {obj.idTblUser}")
-            print(f"🔍 hasattr(obj, 'coiffeuse'): {hasattr(obj, 'coiffeuse')}")
+            # print(f"🔍 DEBUG get_coiffeuse_data pour user {obj.idTblUser}")
+            # print(f"🔍 hasattr(obj, 'coiffeuse'): {hasattr(obj, 'coiffeuse')}")
 
             if hasattr(obj, 'coiffeuse'):
                 coiffeuse_obj = obj.coiffeuse
-                print(f"🔍 coiffeuse_obj: {coiffeuse_obj}")
+                #print(f"🔍 coiffeuse_obj: {coiffeuse_obj}")
 
                 if coiffeuse_obj:
                     serializer_data = TblCoiffeuseSerializer(coiffeuse_obj, context=self.context)
                     result = serializer_data.data
-                    print(f"🔍 Serialization réussie: {result}")
+                    #print(f"🔍 Serialization réussie: {result}")
                     return result
                 else:
-                    print("🔍 ❌ coiffeuse_obj est None")
+                    #print("🔍 ❌ coiffeuse_obj est None")
                     return None
             else:
-                print("🔍 ❌ hasattr(obj, 'coiffeuse') est False")
+                #print("🔍 ❌ hasattr(obj, 'coiffeuse') est False")
                 return None
 
         except Exception as e:
             # ✅ AFFICHER L'ERREUR au lieu de la cacher
-            print(f"🔍 ❌ ERREUR dans get_coiffeuse_data: {str(e)}")
+            #print(f"🔍 ❌ ERREUR dans get_coiffeuse_data: {str(e)}")
             import traceback
-            print(f"🔍 ❌ Traceback: {traceback.format_exc()}")
+            #print(f"🔍 ❌ Traceback: {traceback.format_exc()}")
             return None
 
     # def get_coiffeuse_data(self, obj):

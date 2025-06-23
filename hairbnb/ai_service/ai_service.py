@@ -40,7 +40,8 @@ class AIService:
         try:
             # Système prompt optimisé pour économiser des tokens
             system_prompt = """
-            Tu es l'assistant Hairbnb qui analyse les données de coiffure et clients.
+            Tu es l'assistant Hairbnb qui analyse les données. Tu as accès à la base via query_database.
+
             RÈGLES STRICTES POUR ÉCONOMISER DES TOKENS:
             1. Sois extrêmement concis - pas de formules de politesse
             2. Réponds directement à la question sans introduction
@@ -48,25 +49,35 @@ class AIService:
             4. Limite-toi aux données demandées uniquement
             5. Réponds en 3-4 phrases maximum quand possible
             6. Supprime tout mot superflu
-            
+
             FORMAT DES RÉPONSES:
             - Réponds normalement avec du texte simple dans la plupart des cas
             - Utilise des tableaux HTML UNIQUEMENT quand on te demande explicitement un "tableau" 
-                ou quand tu dois présenter une liste structurée de données comme des clients, services, etc.
+              ou quand tu dois présenter une liste structurée de données comme des clients, services, etc.
 
-            Exemple de tableau HTML à utiliser SEULEMENT quand c'est demandé:
-            <table border="1">
-            <tr>
-                <th>Nom</th>
-                <th>Adresse</th>
-                <th>Date</th>
-            </tr>
-            <tr>
-            <td>Jean Dupont</td>
-            <td>10 rue de Paris</td>
-            <td>15/04/1985</td>
-            </tr>
+            EXEMPLES:
+            Q: "Combien d'utilisateurs ?" 
+            R: "11 utilisateurs dans la base."
+
+            Q: "Liste des clients en tableau"
+            R: <table border="1">
+            <tr><th>Nom</th><th>Email</th><th>Type</th></tr>
+            <tr><td>Jean Dupont</td><td>jean@test.com</td><td>client</td></tr>
             </table>
+
+            TABLES PRINCIPALES (noms exacts):
+            - Utilisateurs: hairbnb_tbluser
+            - Clients: hairbnb_tblclient  
+            - Coiffeuses: hairbnb_tblcoiffeuse
+            - Salons: hairbnb_tblsalon
+            - Services: hairbnb_tblservice
+            - Rendez-vous: hairbnb_tblrendezvous
+            - Avis: "TblAvis" (avec guillemets obligatoires)
+            - Paiements: hairbnb_tblpaiement
+            - Adresses: hairbnb_tbladresse
+            - Promotions: hairbnb_tblpromotion
+
+            Utilise TOUJOURS query_database pour récupérer les vraies données. SELECT uniquement.
             """
 
             # Optimisation du contexte - ne garder que les données pertinentes
@@ -178,6 +189,53 @@ class AIService:
                 tools=tools,
                 temperature=0.3
             )
+
+            # Gérer les appels d'outils
+            if response.stop_reason == "tool_use":
+                from .utils import execute_read_only_query
+
+                for content in response.content:
+                    if content.type == "tool_use" and content.name == "query_database":
+                        #sql = getattr(content.input, 'sql', '')
+
+                        try:
+                            input_dict = json.loads(str(content.input).replace("'", '"'))
+                            sql = input_dict.get('sql', '')
+                        except:
+                            sql = ''
+
+                        result = execute_read_only_query(sql)
+
+                        #--------------------------------------------------------------
+                        print(f"DEBUG SQL: {sql}")
+                        print(f"DEBUG RESULT: {result}")
+                        #--------------------------------------------------------------
+
+                        # Créer un nouveau message avec le résultat
+                        tool_result_message = {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": content.id,
+                                    "content": str(result)
+                                }
+                            ]
+                        }
+
+                        # Ajouter les messages et refaire l'appel
+                        messages.append({"role": "assistant", "content": response.content})
+                        messages.append(tool_result_message)
+
+                        response = self.client.messages.create(
+                            model="claude-3-haiku-20240307",
+                            max_tokens=300,
+                            system=system_prompt,
+                            messages=messages,
+                            tools=tools,
+                            temperature=0.3
+                        )
+                        break
 
             # Extraire la réponse
             ai_response = response.content[0].text

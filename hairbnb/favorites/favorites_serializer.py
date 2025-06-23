@@ -12,7 +12,8 @@ class TblFavoriteSerializer(serializers.ModelSerializer):
     user = serializers.IntegerField(source='user.idTblUser', read_only=True)
 
     # Ajouter le champ added_at pour correspondre au modèle Flutter
-    added_at = serializers.DateTimeField(source='added_at', read_only=True, format='%Y-%m-%dT%H:%M:%S')
+    #added_at = serializers.DateTimeField(source='added_at', read_only=True, format='%Y-%m-%dT%H:%M:%S')
+    added_at = serializers.DateTimeField(read_only=True, format='%Y-%m-%dT%H:%M:%S')
 
     class Meta:
         model = TblFavorite

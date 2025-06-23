@@ -111,14 +111,14 @@ def get_database_context_for_query(query, user=None):
             context["utilisateurs"] = {
                 "total": TblUser.objects.count(),
                 "par_type": {
-                    "coiffeuses": TblUser.objects.filter(type='coiffeuse').count(),
-                    "clients": TblUser.objects.filter(type='client').count(),
-                },
+                    "coiffeuses": TblUser.objects.filter(type_ref__libelle='coiffeuse').count(),
+                    "clients": TblUser.objects.filter(type_ref__libelle='client').count(),
+},
                 "par_genre": {
-                    "hommes": TblUser.objects.filter(sexe='homme').count(),
-                    "femmes": TblUser.objects.filter(sexe='femme').count(),
-                    "autres": TblUser.objects.filter(sexe='autre').count(),
-                },
+                    "hommes": TblUser.objects.filter(sexe_ref__libelle='homme').count(),
+                    "femmes": TblUser.objects.filter(sexe_ref__libelle='femme').count(),
+                    "autres": TblUser.objects.filter(sexe_ref__libelle='autre').count(),
+},
                 "actifs": TblUser.objects.filter(is_active=True).count(),
                 "inactifs": TblUser.objects.filter(is_active=False).count(),
                 "nouveaux_30_jours": TblUser.objects.filter(
@@ -349,7 +349,7 @@ def get_database_context_for_query(query, user=None):
             }
 
             # Informations spécifiques au client
-            if user.type == 'client':
+            if user.type_ref.libelle == 'client':
                 try:
                     client = TblClient.objects.filter(idTblUser=user).first()
                     if client:
@@ -399,7 +399,7 @@ def get_database_context_for_query(query, user=None):
                     logger.error(f"Erreur lors de la récupération des données client: {str(e)}")
 
             # Informations spécifiques à la coiffeuse
-            elif user.type == 'coiffeuse':
+            elif user.type_ref.libelle == 'coiffeuse':
                 try:
                     coiffeuse = TblCoiffeuse.objects.filter(idTblUser=user).first()
                     if coiffeuse:

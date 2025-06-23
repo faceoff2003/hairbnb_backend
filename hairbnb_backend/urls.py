@@ -1,3 +1,4 @@
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
@@ -5,6 +6,7 @@ from hairbnb import views
 from hairbnb.views import home, check_user_profile, ServicesListView, add_or_update_service, \
     coiffeuse_services, list_coiffeuses
 from hairbnb.salon_geolocalisation.salon_geolocalisation_views import get_all_salons
+from hairbnb_backend import settings_test
 
 urlpatterns = [
     path('ghost/', admin.site.urls),
@@ -39,5 +41,9 @@ urlpatterns = [
     path('api/', include('hairbnb.avis.avis_urls')),# Inclure les routes de avis_urls.py
     path('api/', include('hairbnb.chat.chat_urls')),  # Inclure les routes de chat_urls.py
     path('api/administration/', include('hairbnb.administration.admin_urls')),  # Inclure les routes de admin_urls.py
+    path('api/', include('hairbnb.revenus.revenus_urls')),  # Inclure les routes de revenus_urls.py
 
 ]
+
+if settings_test.DEBUG:
+    urlpatterns += static(settings_test.MEDIA_URL, document_root=settings_test.MEDIA_ROOT)
