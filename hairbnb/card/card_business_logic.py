@@ -36,6 +36,25 @@ class CartItemData:
             prix_final = prix_standard
             promo_data = None
 
+        # return {
+        #     "idTblService": service.idTblService,
+        #     "intitule_service": service.intitule_service,
+        #     "description": service.description,
+        #     "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
+        #     "prix": float(prix_standard),
+        #     "promotion": promo_data,
+        #     # Prix recalculé avec promo appliquée
+        #     "prix_final": float(prix_final)
+        # }
+
+        # Récupérer l'ID de la coiffeuse
+        salon_service = service.salon_service.first()
+        coiffeuse_id = None
+        if salon_service and salon_service.salon:
+            proprietaire = salon_service.salon.get_proprietaire()
+            if proprietaire and hasattr(proprietaire, 'idTblUser') and hasattr(proprietaire.idTblUser, 'idTblUser'):
+                coiffeuse_id = proprietaire.idTblUser.idTblUser
+
         return {
             "idTblService": service.idTblService,
             "intitule_service": service.intitule_service,
@@ -43,7 +62,8 @@ class CartItemData:
             "temps_minutes": service.service_temps.first().temps.minutes if service.service_temps.exists() else 0,
             "prix": float(prix_standard),
             "promotion": promo_data,
-            "prix_final": float(prix_final)  # ✅ Prix recalculé avec promo appliquée
+            "prix_final": float(prix_final),
+            "coiffeuse_id": coiffeuse_id,
         }
 
     def to_dict(self):
