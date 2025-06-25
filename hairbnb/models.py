@@ -3,6 +3,9 @@ from django.db import models
 from django.utils import timezone
 from django.utils.timezone import now
 from decimal import Decimal
+
+from hairbnb.services.image_compression import compress_uploaded_image
+from hairbnb.services.image_utils import upload_profile_photo, upload_salon_logo, upload_salon_image
 from hairbnb.services.validators import validate_max_images
 from django.contrib.auth.models import User
 
@@ -93,11 +96,18 @@ class TblUser(models.Model):
 
     # Photo de profil de l'utilisateur (champ image avec une valeur par défaut)
     photo_profil = models.ImageField(
-        upload_to='photos/profils/',
+        #upload_to='photos/profils/',
+        upload_to=upload_profile_photo,
         null=False,
         blank=False,
         default='assets/logo_login/avatar.png'
     )
+
+    def save(self, *args, **kwargs):
+        # Compresser la photo de profil si elle est nouvelle
+        if self.photo_profil and not self.photo_profil.name.endswith('_compressed.jpg'):
+            self.photo_profil = compress_uploaded_image(self.photo_profil, 'photo_profil')
+        super().save(*args, **kwargs)
 
     # Rôle attribué à l'utilisateur (clé étrangère vers la table TblRole)
     role = models.ForeignKey(
@@ -272,7 +282,8 @@ class TblSalon(models.Model):
 
     # Logo du salon, avec un emplacement de stockage personnalisé et une image par défaut
     logo_salon = models.ImageField(
-        upload_to='photos/logos/',  # Dossier de destination dans MEDIA_ROOT
+        #upload_to='photos/logos/',  # Dossier de destination dans MEDIA_ROOT
+        upload_to=upload_salon_logo,
         null=True,
         blank=True,
         default='photos/defaults/logo_default.png'  # Image par défaut si aucun logo n'est fourni
@@ -384,19 +395,48 @@ class TblSalonImage(models.Model):
         related_name='images'
     )
     image = models.ImageField(
-        upload_to='photos/salon/',
+        #upload_to='photos/salon/',
+        upload_to=upload_salon_image,
     )
 
     def __str__(self):
         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - ID {self.id}"
 
     def save(self, *args, **kwargs):
+        # Compresser l'image si elle est nouvelle
+        if self.image and not self.image.name.endswith('_compressed.jpg'):
+            self.image = compress_uploaded_image(self.image, 'salon_image')
+
+        # Validation du nombre max d'images
         try:
             validate_max_images(self.salon)
         except Exception as e:
             print("Erreur dans validate_max_images:", e)
             raise  # Pour laisser l'exception remonter si besoin
+
         super().save(*args, **kwargs)
+
+
+# class TblSalonImage(models.Model):
+#     salon = models.ForeignKey(
+#         TblSalon,
+#         on_delete=models.CASCADE,
+#         related_name='images'
+#     )
+#     image = models.ImageField(
+#         upload_to='photos/salon/',
+#     )
+#
+#     def __str__(self):
+#         return f"Image du salon {self.salon.coiffeuse.idTblUser.nom} - ID {self.id}"
+#
+#     def save(self, *args, **kwargs):
+#         try:
+#             validate_max_images(self.salon)
+#         except Exception as e:
+#             print("Erreur dans validate_max_images:", e)
+#             raise  # Pour laisser l'exception remonter si besoin
+#         super().save(*args, **kwargs)
 
 
 # ------------------------------------TblAvis---------------------------------------
